@@ -32,16 +32,7 @@ class FileSanitizer
         $sanitizedSize = filesize($outputPath);
         $sanitizedHash = hash_file('sha256', $outputPath);
 
-        return new SanitizerResult(
-            inputPath: $inputPath,
-            outputPath: $outputPath,
-            mimeType: $mimeType,
-            sanitizer: $sanitizerName,
-            originalSize: $originalSize ?: 0,
-            sanitizedSize: $sanitizedSize ?: 0,
-            originalSha256: $originalHash ?: '',
-            sanitizedSha256: $sanitizedHash ?: ''
-        );
+        return new SanitizerResult($inputPath, $outputPath, $mimeType, $sanitizerName, $originalSize ?: 0, $sanitizedSize ?: 0, $originalHash ?: '', $sanitizedHash ?: '');
     }
 
     private function resolveSanitizer(string $mimeType, string $inputPath): object
@@ -61,18 +52,15 @@ class FileSanitizer
                 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
             ], true) => new OfficeOpenXmlSanitizer(),
 
-            in_array($mimeType, ['text/plain', 'text/csv', 'application/json', 'text/json'], true), in_array($extension, ['txt', 'csv', 'json'], true) => new TextSanitizer(),
+            in_array($mimeType, ['text/plain', 'text/csv', 'application/json', 'text/json'], true),
+            in_array($extension, ['txt', 'csv', 'json'], true) => new TextSanitizer(),
             default => new BinarySanitizer(),
         };
     }
 
     private function defaultOutputPath(string $inputPath): string
     {
-        $directory = dirname($inputPath);
-        $filename = pathinfo($inputPath, PATHINFO_FILENAME);
-        $extension = pathinfo($inputPath, PATHINFO_EXTENSION);
-
-        return $directory . DIRECTORY_SEPARATOR . $filename . '.sanitized.' . $extension;
+        return dirname($inputPath) . DIRECTORY_SEPARATOR . pathinfo($inputPath, PATHINFO_FILENAME) . '.sanitized.' . pathinfo($inputPath, PATHINFO_EXTENSION);
     }
 
     private function ensureDirectoryExists(string $directory): void

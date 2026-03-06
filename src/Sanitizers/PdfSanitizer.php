@@ -2,10 +2,10 @@
 
 namespace SytxLabs\FileSanitizer\Sanitizers;
 
-use SytxLabs\FileSanitizer\Exception\SanitizerException;
 use setasign\Fpdi\Fpdi;
 use setasign\Fpdi\PdfParser\CrossReference\CrossReferenceException;
 use setasign\Fpdi\PdfParser\PdfParserException;
+use SytxLabs\FileSanitizer\Exception\SanitizerException;
 use Throwable;
 
 class PdfSanitizer

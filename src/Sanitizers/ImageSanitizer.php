@@ -19,7 +19,6 @@ class ImageSanitizer
         $image = $manager->read($inputPath);
 
         match ($extension) {
-            'jpg', 'jpeg' => $image->toJpeg(90)->save($outputPath),
             'png' => $image->toPng()->save($outputPath),
             'gif' => $image->toGif()->save($outputPath),
             'webp' => $image->toWebp(90)->save($outputPath),

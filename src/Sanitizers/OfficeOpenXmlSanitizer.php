@@ -23,7 +23,6 @@ class OfficeOpenXmlSanitizer
         }
 
         $zip = new ZipArchive();
-
         if ($zip->open($inputPath) !== true) {
             $this->deleteDirectory($tempDir);
             throw new SanitizerException("Could not open Office file: {$inputPath}");
@@ -43,10 +42,7 @@ class OfficeOpenXmlSanitizer
             throw new SanitizerException("Could not create sanitized Office file: {$outputPath}");
         }
 
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($tempDir, FilesystemIterator::SKIP_DOTS)
-        );
-
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tempDir, FilesystemIterator::SKIP_DOTS));
         foreach ($iterator as $file) {
             if ($file->isFile()) {
                 $absolutePath = $file->getRealPath();
@@ -68,12 +64,7 @@ class OfficeOpenXmlSanitizer
         if (!is_dir($directory)) {
             return;
         }
-
-        $items = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST
-        );
-
+        $items = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($items as $item) {
             if ($item->isDir()) {
                 rmdir($item->getRealPath());
@@ -81,7 +72,6 @@ class OfficeOpenXmlSanitizer
                 unlink($item->getRealPath());
             }
         }
-
         rmdir($directory);
     }
 }
