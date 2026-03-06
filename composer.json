@@ -1,0 +1,57 @@
+{
+  "name": "sytxlabs/filesanitizer",
+  "description": "A PHP library to sanitize file names and content to prevent security vulnerabilities.",
+  "type": "library",
+  "license": "MIT",
+  "version": "1.0.0",
+  "keywords": ["file sanitization", "security", "PHP library"],
+  "authors": [
+    {
+      "name": "Shaun Lüdeke",
+      "email": "info@sytxlabs.eu",
+      "homepage": "https://sytxlabs.eu",
+      "role": "Developer"
+    }
+  ],
+  "homepage": "https://sytxlabs.eu",
+  "autoload": {
+    "psr-4": {
+      "SytxLabs\\FileSanitizer\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "SytxLabs\\FileSanitizer\\Tests\\": "tests/"
+    }
+  },
+  "require": {
+    "php": ">=8.1",
+    "ext-exif": "*",
+    "ext-gd": "*",
+    "ext-mbstring": "*",
+    "ext-zlib": "*",
+    "ext-zip": "*",
+    "ext-fileinfo": "*",
+    "intervention/image": "^3.11",
+    "setasign/fpdf": "^1.8.6",
+    "setasign/fpdi": "^2.6"
+  },
+  "require-dev": {
+    "portavice/laravel-pint-config": "^2.0",
+    "phpunit/phpunit": "^9",
+    "roave/security-advisories": "dev-latest"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "php-http/discovery": true
+    }
+  },
+  "scripts": {
+    "cs": "pint --config vendor/portavice/laravel-pint-config/pint.json --test",
+    "csfix": "pint --config vendor/portavice/laravel-pint-config/pint.json",
+    "test": "phpunit --configuration phpunit.xml"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
