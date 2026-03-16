@@ -10,13 +10,7 @@ use SytxLabs\FileSanitizer\Enums\IssueSeverity;
 
 final class TextLikeSanitizer implements SanitizerInterface
 {
-    private const TYPES = [
-        'text/plain',
-        'text/csv',
-        'application/json',
-        'application/xml',
-        'text/xml',
-    ];
+    private const TYPES = ['text/plain', 'text/csv', 'application/json', 'application/xml', 'text/xml'];
 
     public function supports(string $mimeType, string $path): bool
     {
@@ -29,16 +23,11 @@ final class TextLikeSanitizer implements SanitizerInterface
         if ($content === false) {
             throw new RuntimeException('Could not read text-like file.');
         }
-
         $content = preg_replace('/^\xEF\xBB\xBF/', '', $content) ?? $content;
         $content = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $content) ?? $content;
-
         if (file_put_contents($outputPath, $content) === false) {
             throw new RuntimeException('Could not write sanitized text-like file.');
         }
-
-        return new SanitizeReport($outputPath, false, [
-            new Issue('text_normalized', 'Text-like content normalized by removing BOM and control characters.', IssueSeverity::Info),
-        ]);
+        return new SanitizeReport($outputPath, false, [new Issue('text_normalized', 'Text-like content normalized by removing BOM and control characters.', IssueSeverity::Info)]);
     }
 }

@@ -12,14 +12,11 @@ final class MimeDetector
         if ($finfo === false) {
             throw new RuntimeException('Unable to open fileinfo extension.');
         }
-
         $mimeType = finfo_file($finfo, $path);
         finfo_close($finfo);
-
         if ($mimeType === false || $mimeType === '') {
             throw new RuntimeException(sprintf('Unable to determine MIME type for "%s".', $path));
         }
-
         return strtolower(trim($mimeType));
     }
 }

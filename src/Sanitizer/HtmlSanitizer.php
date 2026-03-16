@@ -13,16 +13,7 @@ use SytxLabs\FileSanitizer\Enums\IssueSeverity;
 
 final class HtmlSanitizer implements SanitizerInterface
 {
-    private const ALLOWED_TAGS = [
-        'html', 'head', 'body', 'title', 'meta',
-        'div', 'span', 'p', 'br', 'hr',
-        'strong', 'b', 'em', 'i', 'u', 'small',
-        'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
-        'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
-        'a', 'img',
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    ];
-
+    private const ALLOWED_TAGS = ['html', 'head', 'body', 'title', 'meta', 'div', 'span', 'p', 'br', 'hr', 'strong', 'b', 'em', 'i', 'u', 'small', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
     private const GLOBAL_ATTRIBUTES = ['class', 'id', 'title', 'lang', 'dir', 'aria-label', 'aria-hidden', 'role'];
     private const URL_ATTRIBUTES = ['href', 'src'];
 
@@ -99,7 +90,6 @@ final class HtmlSanitizer implements SanitizerInterface
                     $toRemove[] = $attribute->name;
                 }
             }
-
             foreach (array_unique($toRemove) as $attributeName) {
                 $node->removeAttribute($attributeName);
                 $removed++;
@@ -120,18 +110,13 @@ final class HtmlSanitizer implements SanitizerInterface
                 }
             }
         }
-
         if ($output === '' && trim($html) !== '') {
             $output = trim(strip_tags($html));
         }
-
         if (file_put_contents($outputPath, $output) === false) {
             throw new RuntimeException('Could not write sanitized HTML.');
         }
-
-        return new SanitizeReport($outputPath, false, [
-            new Issue('html_cleaned', sprintf('HTML cleaned with allowlist rules; %d risky nodes or attributes removed.', $removed), IssueSeverity::Info),
-        ]);
+        return new SanitizeReport($outputPath, false, [new Issue('html_cleaned', sprintf('HTML cleaned with allowlist rules; %d risky nodes or attributes removed.', $removed), IssueSeverity::Info)]);
     }
 
     private function isAllowedAttribute(string $tag, string $name): bool
@@ -155,15 +140,12 @@ final class HtmlSanitizer implements SanitizerInterface
         if ($value === '' || str_starts_with($value, '#') || str_starts_with($value, '/')) {
             return true;
         }
-
         if ($allowImageDataUri && preg_match('#^data:image/(?:png|gif|jpeg|webp);base64,#i', $value) === 1) {
             return true;
         }
-
         if (preg_match('#^(?:https?|mailto|tel):#i', $value) === 1) {
             return true;
         }
-
         return !preg_match('#^(?:javascript|data|vbscript|file):#i', $value);
     }
 
@@ -173,9 +155,7 @@ final class HtmlSanitizer implements SanitizerInterface
         if (preg_match('/(?:expression\s*\(|@import\b|url\s*\(|behavior\s*:|-moz-binding\s*:)/i', $decoded) === 1) {
             return null;
         }
-
-        $sanitized = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $decoded) ?? $decoded;
-        return trim($sanitized);
+        return trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $decoded) ?? $decoded);
     }
 
     private function removeNodePreservingText(DOMElement $node): void
@@ -184,11 +164,9 @@ final class HtmlSanitizer implements SanitizerInterface
         if ($parent === null) {
             return;
         }
-
         while ($node->firstChild instanceof DOMNode) {
             $parent->insertBefore($node->firstChild, $node);
         }
-
         $parent->removeChild($node);
     }
 }

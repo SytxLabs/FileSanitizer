@@ -7,11 +7,9 @@ use Stringable;
 
 final class ScanReport implements JsonSerializable, Stringable
 {
-    /** @param list<Issue> $issues */
-    public function __construct(
-        public readonly bool $safe,
-        public readonly array $issues = []
-    ) {
+    /** @param array<Issue> $issues */
+    public function __construct(public readonly bool $safe, public readonly array $issues = [])
+    {
     }
 
     public function __toString(): string

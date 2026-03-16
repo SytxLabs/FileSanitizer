@@ -7,7 +7,7 @@ use Stringable;
 
 final class SanitizeReport implements JsonSerializable, Stringable
 {
-    /** @param list<Issue> $issues */
+    /** @param array<Issue> $issues */
     public function __construct(public readonly string $outputPath, public readonly bool $metadataRemoved, public readonly array $issues = [], public readonly array $context = [])
     {
     }

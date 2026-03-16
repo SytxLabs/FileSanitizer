@@ -12,11 +12,8 @@ use ZipArchive;
 
 final class PatternScanner implements ScannerInterface
 {
-    public function __construct(
-        private readonly int $maxArchiveDepth = 3,
-        private readonly int $maxArchiveEntries = 1000,
-        private readonly int $maxExpandedBytes = 25000000,
-    ) {
+    public function __construct(private readonly int $maxArchiveDepth = 3, private readonly int $maxArchiveEntries = 1000, private readonly int $maxExpandedBytes = 25000000)
+    {
     }
 
     public function scan(string $path, string $mimeType): ScanReport
@@ -25,9 +22,7 @@ final class PatternScanner implements ScannerInterface
         $content = @file_get_contents($path);
 
         if ($content === false) {
-            return ScanReport::unsafe([
-                new Issue('read_failed', 'The file could not be read for scanning.', IssueSeverity::Error),
-            ]);
+            return ScanReport::unsafe([new Issue('read_failed', 'The file could not be read for scanning.', IssueSeverity::Error)]);
         }
 
         $patterns = [
@@ -70,12 +65,7 @@ final class PatternScanner implements ScannerInterface
 
     private function isArchiveMimeType(string $mimeType, string $path): bool
     {
-        return in_array($mimeType, [
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'application/zip',
-        ], true) || str_ends_with(strtolower($path), '.zip');
+        return in_array($mimeType, ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'], true) || str_ends_with(strtolower($path), '.zip');
     }
 
     /** @return list<Issue> */
@@ -134,7 +124,6 @@ final class PatternScanner implements ScannerInterface
             if (preg_match('#(?:javascript:|<script\b|on[a-z0-9_-]+\s*=|document\.cookie|<iframe\b|data\s*:\s*text/html)#i', $entry) === 1) {
                 $issues[] = new Issue('archive_embedded_script', sprintf('Suspicious script-like content detected in "%s".', $entryPath), IssueSeverity::Error);
             }
-
             if ($this->looksLikeZip($normalizedName, $entry, $stat['size'] ?? null)) {
                 $nestedPath = tempnam(sys_get_temp_dir(), 'fsz_zip_');
                 if ($nestedPath !== false) {
@@ -144,7 +133,6 @@ final class PatternScanner implements ScannerInterface
                 }
             }
         }
-
         $zip->close();
         return $issues;
     }
@@ -159,11 +147,9 @@ final class PatternScanner implements ScannerInterface
         if (str_ends_with($name, '.zip') || str_ends_with($name, '.docx') || str_ends_with($name, '.xlsx') || str_ends_with($name, '.pptx')) {
             return true;
         }
-
         if (($reportedSize ?? strlen($content)) < 4) {
             return false;
         }
-
         return str_starts_with($content, "PK\x03\x04") || str_starts_with($content, "PK\x05\x06") || str_starts_with($content, "PK\x07\x08");
     }
 }

@@ -1,9 +1,8 @@
 <?php
 
-declare(strict_types=1);
-
 namespace SytxLabs\FileSanitizer\Tests\Sanitizer;
 
+use Exception;
 use PHPUnit\Framework\TestCase;
 use SytxLabs\FileSanitizer\Sanitizer\HtmlSanitizer;
 
@@ -11,6 +10,7 @@ final class HtmlSanitizerTest extends TestCase
 {
     private string $tempDir;
 
+    /** @throws Exception */
     protected function setUp(): void
     {
         $this->tempDir = sys_get_temp_dir() . '/fsz_test_' . bin2hex(random_bytes(6));

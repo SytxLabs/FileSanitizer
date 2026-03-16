@@ -22,18 +22,9 @@ final class FileSanitizer
     /** @var list<SanitizerInterface> */
     private array $sanitizers;
 
-    public function __construct(
-        private readonly ?MimeDetector $mimeDetector = null,
-        private readonly ?ScannerInterface $scanner = null,
-        ?array $sanitizers = null,
-    ) {
-        $this->sanitizers = $sanitizers ?? [
-            new SvgSanitizer(),
-            new HtmlSanitizer(),
-            new ImageSanitizer(),
-            new PdfSanitizer(),
-            new TextLikeSanitizer(),
-        ];
+    public function __construct(private readonly ?MimeDetector $mimeDetector = null, private readonly ?ScannerInterface $scanner = null, ?array $sanitizers = null)
+    {
+        $this->sanitizers = $sanitizers ?? [new SvgSanitizer(), new HtmlSanitizer(), new ImageSanitizer(), new PdfSanitizer(), new TextLikeSanitizer()];
     }
 
     /**
@@ -58,31 +49,14 @@ final class FileSanitizer
             if (!$sanitizer->supports($mimeType, $inputPath)) {
                 continue;
             }
-
             if (!$scan->safe && !$sanitizeAlways) {
-                return [
-                    'mimeType' => $mimeType,
-                    'scan' => $scan,
-                    'sanitize' => new SanitizeReport($outputPath, false, $scan->issues, ['skipped' => true]),
-                ];
+                return ['mimeType' => $mimeType, 'scan' => $scan, 'sanitize' => new SanitizeReport($outputPath, false, $scan->issues, ['skipped' => true])];
             }
-
             $sanitize = $sanitizer->sanitize($inputPath, $outputPath, $sanitizeAlways);
-
             if (!$scan->safe) {
-                $sanitize = new SanitizeReport(
-                    $sanitize->outputPath,
-                    $sanitize->metadataRemoved,
-                    [...$scan->issues, ...$sanitize->issues],
-                    [...$sanitize->context, 'sanitized_despite_scan_issues' => true]
-                );
+                $sanitize = new SanitizeReport($sanitize->outputPath, $sanitize->metadataRemoved, [...$scan->issues, ...$sanitize->issues], [...$sanitize->context, 'sanitized_despite_scan_issues' => true]);
             }
-
-            return [
-                'mimeType' => $mimeType,
-                'scan' => $scan,
-                'sanitize' => $sanitize,
-            ];
+            return ['mimeType' => $mimeType, 'scan' => $scan, 'sanitize' => $sanitize];
         }
 
         if (!copy($inputPath, $outputPath)) {
@@ -92,11 +66,7 @@ final class FileSanitizer
         $issues = $scan->issues;
         $issues[] = new Issue('no_sanitizer', 'No specialized sanitizer exists for this file type; original file was copied after scanning.', IssueSeverity::Warning);
 
-        return [
-            'mimeType' => $mimeType,
-            'scan' => $scan,
-            'sanitize' => new SanitizeReport($outputPath, false, $issues, ['copied_original' => true]),
-        ];
+        return ['mimeType' => $mimeType, 'scan' => $scan, 'sanitize' => new SanitizeReport($outputPath, false, $issues, ['copied_original' => true])];
     }
 
     public function sanitizeAlways(string $inputPath, ?string $outputPath = null): array

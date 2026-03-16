@@ -23,7 +23,7 @@ composer install
 composer test
 ```
 
-PHPUnit is added as a dev dependency.
+PHPUnit is added as a dev dependency
 
 ## Usage
 
@@ -32,7 +32,7 @@ PHPUnit is added as a dev dependency.
 
 require __DIR__ . '/vendor/autoload.php';
 
-use FileSanitizer\FileSanitizer;
+use SytxLabs\FileSanitizer\FileSanitizer;
 
 $sanitizer = new FileSanitizer();
 $result = $sanitizer->process(__DIR__ . '/upload.svg');
@@ -60,7 +60,7 @@ Current guards:
 
 ## HTML and SVG policy
 
-HTML cleanup uses PHP's DOM support to parse and rewrite content, removing disallowed tags and risky attributes instead of relying on `strip_tags()`, which PHP user notes caution is not sufficient for safe attribute handling. PHP's DOM APIs support HTML parsing and tree editing.
+HTML cleanup uses PHP's DOM support to parse and rewrite content, removing disallowed tags and risky attributes instead of relying on `strip_tags()`, which PHP user notes caution is not enough for safe attribute handling. PHP's DOM APIs support HTML parsing and tree editing.
 
 Highlights:
 
@@ -78,10 +78,10 @@ Included PHPUnit coverage exercises:
 - path traversal detection inside ZIPs
 - HTML sanitization rules
 - SVG sanitization rules
-- PDF scanning for JavaScript and actions
+- PDF action detection
 
 ## Limitations
 
 - PDF cleanup is still best-effort rather than a full structural rewrite
-- OOXML files are scanned for risky content and external references, but not fully rewritten yet
+- OOXML files are scanned for risky content and external references but not fully rewritten yet
 - This package is a sanitizer and heuristic scanner, not a substitute for sandboxing or AV scanning

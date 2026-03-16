@@ -78,20 +78,16 @@ final class SvgSanitizer implements SanitizerInterface
             foreach (iterator_to_array($element->attributes ?? []) as $attribute) {
                 $name = strtolower($attribute->nodeName);
                 $value = trim(html_entity_decode($attribute->nodeValue, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-
                 if (str_starts_with($name, 'on')) {
                     $toRemove[] = $attribute->nodeName;
                     continue;
                 }
-
                 if (in_array($name, ['href', 'xlink:href', 'src'], true) && !$this->isSafeSvgReference($value)) {
                     $toRemove[] = $attribute->nodeName;
                     continue;
                 }
-
                 if ($name === 'style' && preg_match('/(?:expression\s*\(|@import\b|url\s*\(|behavior\s*:|-moz-binding\s*:)/i', $value) === 1) {
                     $toRemove[] = $attribute->nodeName;
-                    continue;
                 }
             }
 
@@ -107,9 +103,7 @@ final class SvgSanitizer implements SanitizerInterface
             throw new RuntimeException('Could not write sanitized SVG.');
         }
 
-        return new SanitizeReport($outputPath, true, [
-            new Issue('svg_cleaned', sprintf('SVG cleaned with strict policy rules; %d risky or metadata nodes/attributes removed.', $removed), IssueSeverity::Info),
-        ]);
+        return new SanitizeReport($outputPath, true, [new Issue('svg_cleaned', sprintf('SVG cleaned with strict policy rules; %d risky or metadata nodes/attributes removed.', $removed), IssueSeverity::Info)]);
     }
 
     private function isSafeSvgReference(string $value): bool

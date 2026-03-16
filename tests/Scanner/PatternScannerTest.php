@@ -1,9 +1,8 @@
 <?php
 
-declare(strict_types=1);
-
 namespace SytxLabs\FileSanitizer\Tests\Scanner;
 
+use Exception;
 use PHPUnit\Framework\TestCase;
 use SytxLabs\FileSanitizer\Scanner\PatternScanner;
 use ZipArchive;
@@ -12,6 +11,7 @@ final class PatternScannerTest extends TestCase
 {
     private string $tempDir;
 
+    /** @throws Exception */
     protected function setUp(): void
     {
         $this->tempDir = sys_get_temp_dir() . '/fsz_test_' . bin2hex(random_bytes(6));
@@ -65,7 +65,6 @@ final class PatternScannerTest extends TestCase
                 return true;
             }
         }
-
         return false;
     }
 
@@ -75,7 +74,6 @@ final class PatternScannerTest extends TestCase
             @unlink($path);
             return;
         }
-
         $items = scandir($path) ?: [];
         foreach ($items as $item) {
             if ($item === '.' || $item === '..') {
@@ -83,7 +81,6 @@ final class PatternScannerTest extends TestCase
             }
             $this->deleteTree($path . '/' . $item);
         }
-
         @rmdir($path);
     }
 }

@@ -1,8 +1,11 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/bootstrap.php" colors="true">
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd" beStrictAboutTestsThatDoNotTestAnything="false" bootstrap="vendor/autoload.php" colors="true">
     <testsuites>
-        <testsuite name="FileSanitizer">
-            <directory>tests</directory>
+        <testsuite name="Unit Tests">
+            <directory suffix=".php">./tests/Scanner</directory>
+        </testsuite>
+        <testsuite name="Feature Tests">
+            <directory suffix=".php">./tests/Sanitizer</directory>
         </testsuite>
     </testsuites>
 </phpunit>
