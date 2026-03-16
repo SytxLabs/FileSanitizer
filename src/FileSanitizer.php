@@ -2,88 +2,112 @@
 
 namespace SytxLabs\FileSanitizer;
 
-use SytxLabs\FileSanitizer\Exception\SanitizerException;
-use SytxLabs\FileSanitizer\Sanitizers\BinarySanitizer;
-use SytxLabs\FileSanitizer\Sanitizers\ImageSanitizer;
-use SytxLabs\FileSanitizer\Sanitizers\OfficeOpenXmlSanitizer;
-use SytxLabs\FileSanitizer\Sanitizers\PdfSanitizer;
-use SytxLabs\FileSanitizer\Sanitizers\TextSanitizer;
+use RuntimeException;
+use SytxLabs\FileSanitizer\Contracts\SanitizerInterface;
+use SytxLabs\FileSanitizer\Contracts\ScannerInterface;
+use SytxLabs\FileSanitizer\Dto\Issue;
+use SytxLabs\FileSanitizer\Dto\SanitizeReport;
+use SytxLabs\FileSanitizer\Dto\ScanReport;
+use SytxLabs\FileSanitizer\Enums\IssueSeverity;
+use SytxLabs\FileSanitizer\Sanitizer\HtmlSanitizer;
+use SytxLabs\FileSanitizer\Sanitizer\ImageSanitizer;
+use SytxLabs\FileSanitizer\Sanitizer\PdfSanitizer;
+use SytxLabs\FileSanitizer\Sanitizer\SvgSanitizer;
+use SytxLabs\FileSanitizer\Sanitizer\TextLikeSanitizer;
+use SytxLabs\FileSanitizer\Scanner\PatternScanner;
+use SytxLabs\FileSanitizer\Support\MimeDetector;
 
-class FileSanitizer
+final class FileSanitizer
 {
-    public function sanitize(string $inputPath, ?string $outputPath = null): SanitizerResult
-    {
-        if (!is_file($inputPath) || !is_readable($inputPath)) {
-            throw new SanitizerException("Input file not found or unreadable: {$inputPath}");
-        }
+    /** @var list<SanitizerInterface> */
+    private array $sanitizers;
 
-        $mimeType = mime_content_type($inputPath) ?: 'application/octet-stream';
-        $outputPath ??= $this->defaultOutputPath($inputPath);
-
-        $sanitizer = $this->resolveSanitizer($mimeType, $inputPath);
-        $sanitizerName = $sanitizer::class;
-
-        $originalSize = filesize($inputPath);
-        $originalHash = hash_file('sha256', $inputPath);
-
-        $this->ensureDirectoryExists(dirname($outputPath));
-        $sanitizer->sanitize($inputPath, $outputPath);
-
-        $sanitizedSize = filesize($outputPath);
-        $sanitizedHash = hash_file('sha256', $outputPath);
-
-        return new SanitizerResult($inputPath, $outputPath, $mimeType, $sanitizerName, $originalSize ?: 0, $sanitizedSize ?: 0, $originalHash ?: '', $sanitizedHash ?: '');
+    public function __construct(
+        private readonly ?MimeDetector $mimeDetector = null,
+        private readonly ?ScannerInterface $scanner = null,
+        ?array $sanitizers = null,
+    ) {
+        $this->sanitizers = $sanitizers ?? [
+            new SvgSanitizer(),
+            new HtmlSanitizer(),
+            new ImageSanitizer(),
+            new PdfSanitizer(),
+            new TextLikeSanitizer(),
+        ];
     }
 
-    private function resolveSanitizer(string $mimeType, string $inputPath): object
+    /**
+     * @return array{mimeType:string, scan:ScanReport, sanitize:SanitizeReport}
+     */
+    public function process(string $inputPath, bool|string|null $outputPath = null, bool $sanitizeAlways = true): array
     {
-        $extension = strtolower(pathinfo($inputPath, PATHINFO_EXTENSION));
-        if ($mimeType === 'application/pdf' && !$this->looksLikePdf($inputPath)) {
-            throw new SanitizerException('File claims to be a PDF but has no valid PDF header.');
+        if (is_bool($outputPath)) {
+            $sanitizeAlways = $outputPath;
+            $outputPath = null;
         }
-        return match (true) {
-            $mimeType === 'application/pdf' => new PdfSanitizer(),
 
-            str_starts_with($mimeType, 'image/') => new ImageSanitizer(),
+        if (!is_file($inputPath)) {
+            throw new RuntimeException(sprintf('Input file not found: %s', $inputPath));
+        }
 
-            in_array($mimeType, [
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            ], true) => new OfficeOpenXmlSanitizer(),
+        $mimeType = ($this->mimeDetector ?? new MimeDetector())->detect($inputPath);
+        $scan = ($this->scanner ?? new PatternScanner())->scan($inputPath, $mimeType);
+        $outputPath ??= $this->defaultOutputPath($inputPath);
 
-            in_array($mimeType, ['text/plain', 'text/csv', 'application/json', 'text/json'], true),
-            in_array($extension, ['txt', 'csv', 'json'], true) => new TextSanitizer(),
-            default => new BinarySanitizer(),
-        };
+        foreach ($this->sanitizers as $sanitizer) {
+            if (!$sanitizer->supports($mimeType, $inputPath)) {
+                continue;
+            }
+
+            if (!$scan->safe && !$sanitizeAlways) {
+                return [
+                    'mimeType' => $mimeType,
+                    'scan' => $scan,
+                    'sanitize' => new SanitizeReport($outputPath, false, $scan->issues, ['skipped' => true]),
+                ];
+            }
+
+            $sanitize = $sanitizer->sanitize($inputPath, $outputPath, $sanitizeAlways);
+
+            if (!$scan->safe) {
+                $sanitize = new SanitizeReport(
+                    $sanitize->outputPath,
+                    $sanitize->metadataRemoved,
+                    [...$scan->issues, ...$sanitize->issues],
+                    [...$sanitize->context, 'sanitized_despite_scan_issues' => true]
+                );
+            }
+
+            return [
+                'mimeType' => $mimeType,
+                'scan' => $scan,
+                'sanitize' => $sanitize,
+            ];
+        }
+
+        if (!copy($inputPath, $outputPath)) {
+            throw new RuntimeException('Could not copy unsupported file to output path.');
+        }
+
+        $issues = $scan->issues;
+        $issues[] = new Issue('no_sanitizer', 'No specialized sanitizer exists for this file type; original file was copied after scanning.', IssueSeverity::Warning);
+
+        return [
+            'mimeType' => $mimeType,
+            'scan' => $scan,
+            'sanitize' => new SanitizeReport($outputPath, false, $issues, ['copied_original' => true]),
+        ];
+    }
+
+    public function sanitizeAlways(string $inputPath, ?string $outputPath = null): array
+    {
+        return $this->process($inputPath, $outputPath, true);
     }
 
     private function defaultOutputPath(string $inputPath): string
     {
-        return dirname($inputPath) . DIRECTORY_SEPARATOR . pathinfo($inputPath, PATHINFO_FILENAME) . '.sanitized.' . pathinfo($inputPath, PATHINFO_EXTENSION);
-    }
-
-    private function ensureDirectoryExists(string $directory): void
-    {
-        if (is_dir($directory)) {
-            return;
-        }
-
-        if (!mkdir($directory, 0777, true) && !is_dir($directory)) {
-            throw new SanitizerException("Failed to create output directory: {$directory}");
-        }
-    }
-
-    private function looksLikePdf(string $path): bool
-    {
-        $handle = fopen($path, 'rb');
-        if ($handle === false) {
-            return false;
-        }
-
-        $header = fread($handle, 8);
-        fclose($handle);
-
-        return is_string($header) && str_starts_with($header, '%PDF-');
+        $extension = pathinfo($inputPath, PATHINFO_EXTENSION);
+        $base = substr($inputPath, 0, -strlen($extension) - ($extension !== '' ? 1 : 0));
+        return $base . '.sanitized' . ($extension !== '' ? '.' . $extension : '');
     }
 }

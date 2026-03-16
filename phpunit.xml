@@ -1,27 +1,8 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<phpunit
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
-        backupGlobals="false"
-        backupStaticProperties="false"
-        beStrictAboutTestsThatDoNotTestAnything="false"
-        bootstrap="vendor/autoload.php"
-        cacheDirectory=".phpunit.cache"
-        colors="true"
-        displayDetailsOnTestsThatTriggerNotices="true"
-        processIsolation="false"
-        stopOnFailure="false">
+<phpunit bootstrap="tests/bootstrap.php" colors="true">
     <testsuites>
-        <testsuite name="Unit Tests">
-            <directory suffix=".php">./tests/Unit</directory>
-        </testsuite>
-        <testsuite name="Feature Tests">
-            <directory suffix=".php">./tests/Feature</directory>
+        <testsuite name="FileSanitizer">
+            <directory>tests</directory>
         </testsuite>
     </testsuites>
-    <source>
-        <include>
-            <directory suffix=".php">src</directory>
-        </include>
-    </source>
 </phpunit>
