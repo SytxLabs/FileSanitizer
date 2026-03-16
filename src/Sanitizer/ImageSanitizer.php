@@ -2,7 +2,6 @@
 
 namespace SytxLabs\FileSanitizer\Sanitizer;
 
-use Exception;
 use RuntimeException;
 use SytxLabs\FileSanitizer\Contracts\SanitizerInterface;
 use SytxLabs\FileSanitizer\Dto\Issue;
