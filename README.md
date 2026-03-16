@@ -9,12 +9,11 @@ Pure PHP file sanitizer and scanner for uploaded files. It strips metadata where
 - Recursively scans ZIP archives with depth, entry-count, and expanded-size guards
 - Detects common XSS-style payloads such as `<script>`, inline handlers, `javascript:` URLs, hostile CSS, and dangerous PDF actions
 - Applies strict allowlist-based cleanup for HTML and strict removal rules for SVG
-- Does not use SSH, shell commands, or `setasign/fpdf`
 
 ## Install
 
 ```bash
-composer require filesanitizer/filesanitizer
+composer require sytxlabs/filesanitizer
 ```
 
 For development and tests:
@@ -24,7 +23,7 @@ composer install
 composer test
 ```
 
-PHPUnit is added as a dev dependency. PHPUnit 13 is currently the stable release, while PHPUnit 11 requires PHP 8.2+ and PHPUnit 12 requires PHP 8.3+. This package keeps a flexible dev constraint so Composer can resolve a compatible PHPUnit version for your PHP runtime. citeturn204189search3turn204189search6turn204189search12
+PHPUnit is added as a dev dependency.
 
 ## Usage
 
@@ -50,7 +49,7 @@ echo 'Sanitized file written to: ' . $result['sanitize']->outputPath . PHP_EOL;
 
 ## Archive scanning notes
 
-The recursive archive scanner uses PHP's `ZipArchive` extension and does not extract archives to a shell. PHP documents `ZipArchive` for reading archive entries and notes extraction and open behavior through the zip extension API. citeturn204189search1turn204189search4turn204189search16
+The recursive archive scanner uses PHP's `ZipArchive` extension and does not extract archives to a shell. PHP documents `ZipArchive` for reading archive entries and notes extraction and open behavior through the zip extension API.
 
 Current guards:
 
@@ -61,7 +60,7 @@ Current guards:
 
 ## HTML and SVG policy
 
-HTML cleanup uses PHP's DOM support to parse and rewrite content, removing disallowed tags and risky attributes instead of relying on `strip_tags()`, which PHP user notes caution is not sufficient for safe attribute handling. PHP's DOM APIs support HTML parsing and tree editing. citeturn204189search14turn204189search8turn204189search20
+HTML cleanup uses PHP's DOM support to parse and rewrite content, removing disallowed tags and risky attributes instead of relying on `strip_tags()`, which PHP user notes caution is not sufficient for safe attribute handling. PHP's DOM APIs support HTML parsing and tree editing.
 
 Highlights:
 
@@ -79,6 +78,7 @@ Included PHPUnit coverage exercises:
 - path traversal detection inside ZIPs
 - HTML sanitization rules
 - SVG sanitization rules
+- PDF scanning for JavaScript and actions
 
 ## Limitations
 
