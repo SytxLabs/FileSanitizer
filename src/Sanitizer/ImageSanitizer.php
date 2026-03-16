@@ -22,25 +22,47 @@ final class ImageSanitizer implements SanitizerInterface
         if ($type === false) {
             throw new RuntimeException('Unsupported image file.');
         }
-        $issues = [];
-        if ($type === IMAGETYPE_PNG) {
-            $iccpWarningSeen = false;
 
-            set_error_handler(static function (int $severity, string $message) use (&$iccpWarningSeen): bool {
-                if ($severity === E_WARNING && str_contains($message, 'imagecreatefrompng()') && str_contains($message, 'iCCP: known incorrect sRGB profile')) {
-                    $iccpWarningSeen = true;
-                    return true; // bekannte libpng-Warnung lokal unterdruecken
-                }
-                return false; // alles andere normal weiterreichen
+        $issues = [];
+        if (!file_exists(dirname($outputPath))) {
+            if (!mkdir(dirname($outputPath), 0755, true) && !is_dir(dirname($outputPath))) {
+                throw new RuntimeException('Failed to create output directory.');
+            }
+        }
+
+        $warning = null;
+        if ($type === IMAGETYPE_PNG) {
+            set_error_handler(static function (int $severity, string $message) use (&$warning) {
+                $warning = $message;
+                return true;
             });
             try {
-                $image = imagecreatefrompng($inputPath);
+                $source = imagecreatefrompng($inputPath);
             } finally {
                 restore_error_handler();
             }
-            if ($iccpWarningSeen) {
-                $issues[] = new Issue('png_iccp_profile_warning', 'The PNG file contains a corrupted iCCP/sRGB profile; the file was decoded anyway and will be re-encoded.', IssueSeverity::Warning);
+            if ($source === false) {
+                throw new RuntimeException('Could not decode PNG for metadata stripping.' . ($warning ? ' ' . $warning : ''));
             }
+
+            $width = imagesx($source);
+            $height = imagesy($source);
+
+            $image = imagecreatetruecolor($width, $height);
+            if ($image === false) {
+                imagedestroy($source);
+                throw new RuntimeException('Could not create PNG target image.');
+            }
+            imagealphablending($image, false);
+            imagesavealpha($image, true);
+            $transparent = imagecolorallocatealpha($image, 0, 0, 0, 127);
+            imagefilledrectangle($image, 0, 0, $width, $height, $transparent);
+            if (!imagecopy($image, $source, 0, 0, 0, 0, $width, $height)) {
+                imagedestroy($source);
+                imagedestroy($image);
+                throw new RuntimeException('Could not copy PNG pixels.');
+            }
+            imagedestroy($source);
         } else {
             $image = match ($type) {
                 IMAGETYPE_JPEG => imagecreatefromjpeg($inputPath),
@@ -48,28 +70,27 @@ final class ImageSanitizer implements SanitizerInterface
                 IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? imagecreatefromwebp($inputPath) : false,
                 default => false,
             };
+
+            if ($image === false) {
+                throw new RuntimeException('Could not decode image for metadata stripping.');
+            }
         }
 
-        if ($image === false) {
-            throw new RuntimeException('Could not decode image for metadata stripping.');
-        }
-        try {
-            if (!file_exists(dirname($outputPath))) {
-                mkdir(dirname($outputPath), 0755, true);
-            }
-        } catch (Exception $e) {
-            throw new RuntimeException('Failed to create output directory: ' . $e->getMessage());
-        }
         $success = match ($type) {
-            IMAGETYPE_JPEG => imagejpeg($image, $outputPath, 92),
-            IMAGETYPE_PNG => imagepng($image, $outputPath, 6),
+            IMAGETYPE_JPEG => imagejpeg($image, $outputPath),
+            IMAGETYPE_PNG => imagepng($image, $outputPath),
             IMAGETYPE_GIF => imagegif($image, $outputPath),
-            IMAGETYPE_WEBP => function_exists('imagewebp') && imagewebp($image, $outputPath, 90),
+            IMAGETYPE_WEBP => function_exists('imagewebp') && imagewebp($image, $outputPath),
             default => false,
         };
+
         imagedestroy($image);
+
         if ($success !== true) {
             throw new RuntimeException('Could not re-encode image.');
+        }
+        if ($warning !== null) {
+            $issues[] = new Issue('png_metadata_warning', $warning, IssueSeverity::Warning);
         }
         $issues[] = new Issue('image_reencoded', 'Image was re-encoded to strip metadata and ancillary chunks.', IssueSeverity::Info);
         return new SanitizeReport($outputPath, true, $issues);
