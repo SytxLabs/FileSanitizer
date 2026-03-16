@@ -5,6 +5,7 @@ namespace SytxLabs\FileSanitizer\Sanitizer;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
+use Exception;
 use RuntimeException;
 use SytxLabs\FileSanitizer\Contracts\SanitizerInterface;
 use SytxLabs\FileSanitizer\Dto\Issue;
@@ -112,6 +113,13 @@ final class HtmlSanitizer implements SanitizerInterface
         }
         if ($output === '' && trim($html) !== '') {
             $output = trim(strip_tags($html));
+        }
+        try {
+            if (!file_exists(dirname($outputPath))) {
+                mkdir(dirname($outputPath), 0755, true);
+            }
+        } catch (Exception $e) {
+            throw new RuntimeException('Failed to create output directory: ' . $e->getMessage());
         }
         if (file_put_contents($outputPath, $output) === false) {
             throw new RuntimeException('Could not write sanitized HTML.');

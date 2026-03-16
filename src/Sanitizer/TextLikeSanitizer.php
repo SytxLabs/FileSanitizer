@@ -2,6 +2,7 @@
 
 namespace SytxLabs\FileSanitizer\Sanitizer;
 
+use Exception;
 use RuntimeException;
 use SytxLabs\FileSanitizer\Contracts\SanitizerInterface;
 use SytxLabs\FileSanitizer\Dto\Issue;
@@ -25,6 +26,13 @@ final class TextLikeSanitizer implements SanitizerInterface
         }
         $content = preg_replace('/^\xEF\xBB\xBF/', '', $content) ?? $content;
         $content = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $content) ?? $content;
+        try {
+            if (!file_exists(dirname($outputPath))) {
+                mkdir(dirname($outputPath), 0755, true);
+            }
+        } catch (Exception $e) {
+            throw new RuntimeException('Failed to create output directory: ' . $e->getMessage());
+        }
         if (file_put_contents($outputPath, $content) === false) {
             throw new RuntimeException('Could not write sanitized text-like file.');
         }

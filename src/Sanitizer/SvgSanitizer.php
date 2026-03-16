@@ -6,6 +6,7 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use DOMXPath;
+use Exception;
 use RuntimeException;
 use SytxLabs\FileSanitizer\Contracts\SanitizerInterface;
 use SytxLabs\FileSanitizer\Dto\Issue;
@@ -99,6 +100,14 @@ final class SvgSanitizer implements SanitizerInterface
 
         $dom->formatOutput = false;
         $output = $dom->saveXML($dom->documentElement);
+
+        try {
+            if (!file_exists(dirname($outputPath))) {
+                mkdir(dirname($outputPath), 0755, true);
+            }
+        } catch (Exception $e) {
+            throw new RuntimeException('Failed to create output directory: ' . $e->getMessage());
+        }
         if ($output === false || file_put_contents($outputPath, $output) === false) {
             throw new RuntimeException('Could not write sanitized SVG.');
         }
