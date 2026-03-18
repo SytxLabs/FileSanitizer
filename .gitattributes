@@ -15,5 +15,3 @@
 /.phpunit.result.cache export-ignore
 /composer.lock export-ignore
 /phpunit.xml export-ignore
-README.md export-ignore
-LICENSE.md export-ignore
