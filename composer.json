@@ -34,7 +34,7 @@
       "ext-fileinfo": "*"
   },
   "require-dev": {
-    "portavice/laravel-pint-config": "^3.0",
+    "portavice/laravel-pint-config": "^2.0",
     "phpunit/phpunit": "^9",
     "roave/security-advisories": "dev-latest"
   },
