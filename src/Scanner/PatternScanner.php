@@ -142,7 +142,7 @@ final class PatternScanner implements ScannerInterface
         return str_contains($name, '../') || str_starts_with($name, '/') || preg_match('/^[a-z]:\//i', $name) === 1;
     }
 
-    private function looksLikeZip(string $name, string $content, int|null $reportedSize): bool
+    private function looksLikeZip(string $name, string $content, ?int $reportedSize): bool
     {
         if (str_ends_with($name, '.zip') || str_ends_with($name, '.docx') || str_ends_with($name, '.xlsx') || str_ends_with($name, '.pptx')) {
             return true;
