@@ -4,8 +4,8 @@ namespace SytxLabs\FileSanitizer\Sanitizer;
 
 use RuntimeException;
 use SytxLabs\FileSanitizer\Contracts\SanitizerInterface;
-use SytxLabs\FileSanitizer\DTO\Issue;
-use SytxLabs\FileSanitizer\DTO\SanitizeReport;
+use SytxLabs\FileSanitizer\Dto\Issue;
+use SytxLabs\FileSanitizer\Dto\SanitizeReport;
 use SytxLabs\FileSanitizer\Enums\IssueSeverity;
 
 class VideoSanitizer implements SanitizerInterface

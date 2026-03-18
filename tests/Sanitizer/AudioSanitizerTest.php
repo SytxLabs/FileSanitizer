@@ -4,7 +4,7 @@ namespace SytxLabs\FileSanitizer\Tests\Sanitizer;
 
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use SytxLabs\FileSanitizer\DTO\Issue;
+use SytxLabs\FileSanitizer\Dto\Issue;
 use SytxLabs\FileSanitizer\Sanitizer\AudioSanitizer;
 
 class AudioSanitizerTest extends TestCase
