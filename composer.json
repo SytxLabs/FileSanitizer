@@ -3,7 +3,6 @@
   "description": "A PHP library to sanitize file names and content to prevent security vulnerabilities.",
   "type": "library",
   "license": "MIT",
-  "version": "1.0.2",
   "keywords": ["file sanitization", "security", "PHP library"],
   "authors": [
     {

@@ -18,7 +18,7 @@ if (!$file) {
 
 $sanitizer = new FileSanitizer();
 $outputPath = $file . '.sanitized.' . pathinfo($file, PATHINFO_EXTENSION);
-$result = $sanitizer->process($file, $outputPath);
+$result = $sanitizer->process($file, $outputPath, true);
 
 echo '<pre>';
 print_r($result);
