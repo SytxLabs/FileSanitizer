@@ -35,7 +35,7 @@ final class PatternScanner implements ScannerInterface
             'iframe_embed' => '/<\s*iframe\b/i',
             'svg_foreignobject' => '/<\s*foreignobject\b/i',
             'svg_animate' => '/<\s*animate\b/i',
-            'php_tag' => '/<\?(?:php|=)?/i',
+//            'php_tag' => '/<\?(?:php|=)?/i',
             'php_exec' => '/\b(?:shell_exec|exec|system|passthru|proc_open|popen)\s*\(/i',
             'pdf_js' => '/\/JavaScript\b|\/JS\b|\/OpenAction\b|\/AA\b/i',
             'html_meta_refresh' => '/<meta[^>]+http-equiv\s*=\s*["\']?refresh/i',

@@ -46,6 +46,9 @@ final class FileSanitizer
         $mimeType = ($this->mimeDetector ?? new MimeDetector())->detect($inputPath);
         $scan = ($this->scanner ?? new PatternScanner())->scan($inputPath, $mimeType);
         $outputPath ??= $this->defaultOutputPath($inputPath);
+        if (!$scan->safe && !$sanitizeAlways) {
+            return ['mimeType' => $mimeType, 'scan' => $scan, 'sanitize' => new SanitizeReport($outputPath, false, $scan->issues, ['skipped' => true])];
+        }
         $sanitizer = $this->resolveSanitizer($mimeType, $inputPath);
         if ($sanitizer === null) {
             if (!copy($inputPath, $outputPath)) {
@@ -54,9 +57,6 @@ final class FileSanitizer
             $issues = $scan->issues;
             $issues[] = new Issue('no_sanitizer', 'No specialized sanitizer exists for this file type; original file was copied after scanning.', IssueSeverity::Warning);
             return ['mimeType' => $mimeType, 'scan' => $scan, 'sanitize' => new SanitizeReport($outputPath, false, $issues, ['copied_original' => true])];
-        }
-        if (!$scan->safe && !$sanitizeAlways) {
-            return ['mimeType' => $mimeType, 'scan' => $scan, 'sanitize' => new SanitizeReport($outputPath, false, $scan->issues, ['skipped' => true])];
         }
         $sanitize = $sanitizer->sanitize($inputPath, $outputPath, $sanitizeAlways);
         if (!$scan->safe) {
@@ -83,7 +83,6 @@ final class FileSanitizer
     private function defaultOutputPath(string $inputPath): string
     {
         $extension = pathinfo($inputPath, PATHINFO_EXTENSION);
-        $base = substr($inputPath, 0, -strlen($extension) - ($extension !== '' ? 1 : 0));
-        return $base . '.sanitized' . ($extension !== '' ? '.' . $extension : '');
+        return substr($inputPath, 0, -strlen($extension) - ($extension !== '' ? 1 : 0)) . '.sanitized' . ($extension !== '' ? '.' . $extension : '');
     }
 }
