@@ -57,6 +57,57 @@ if (!$result['scan']->safe) {
 echo 'Sanitized file written to: ' . $result['sanitize']->outputPath . PHP_EOL;
 ```
 
+## String and base64 input
+
+You can sanitize raw payloads directly without creating input files yourself.
+
+```php
+<?php
+
+use SytxLabs\FileSanitizer\FileSanitizer;
+
+$sanitizer = new FileSanitizer();
+
+$html = '<div onclick="x()"><script>alert(1)</script>ok</div>';
+$result = $sanitizer->processString($html, 'upload.html', true);
+
+echo $result['sanitizedData'];
+```
+
+`processString()` also accepts optional `filenameHint` and optional `mimeType` as the 2nd and 5th argument.
+If `mimeType` is `null`, FileSanitizer detects it from the payload data.
+It also supports Python-style bytes literal input like `b"...\\xFF..."` or `b'...\\x00...'`.
+
+For raw binary bytes, use `processBinary()`:
+
+```php
+<?php
+
+use SytxLabs\FileSanitizer\FileSanitizer;
+
+$sanitizer = new FileSanitizer();
+$bytes = file_get_contents('php://input');
+$result = $sanitizer->processBinary($bytes, null, null, true, null);
+```
+
+For base64 payloads (including `data:*;base64,...` input):
+
+```php
+<?php
+
+use SytxLabs\FileSanitizer\FileSanitizer;
+
+$sanitizer = new FileSanitizer();
+
+$payload = 'data:image/svg+xml;base64,' . base64_encode('<svg><script>alert(1)</script></svg>');
+$result = $sanitizer->processBase64($payload, 'upload.svg', true);
+
+echo $result['sanitizedBase64'];
+```
+
+`processBase64()` also accepts optional `filenameHint` and optional `mimeType` as the 2nd and 5th argument.
+If `mimeType` is `null`, it first uses Data-URI MIME (if present), otherwise detects from decoded data.
+
 ## sanitizeAlways mode
 
 When `sanitizeAlways` is enabled, FileSanitizer will attempt best-effort sanitization even if risky content is detected during scanning.
