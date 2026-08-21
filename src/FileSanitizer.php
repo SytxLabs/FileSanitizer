@@ -118,7 +118,7 @@ final class FileSanitizer
             throw new RuntimeException('Invalid base64 input.');
         }
         $result = $this->processBinary($decoded, $filenameHint, $outputPath, $sanitizeAlways, $mimeType ?? $this->extractDataUriMimeType($base64Data));
-        return [...$result, 'sanitizedBase64' => base64_encode($result['sanitizedData'])];
+        return [...$result, 'sanitizedBase64' => 'data:' . $result['mimeType'] . ';base64,' . base64_encode($result['sanitizedData'])];
     }
 
     private function resolveSanitizer(string $mimeType, string $path): ?SanitizerInterface
