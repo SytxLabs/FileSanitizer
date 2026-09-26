@@ -2,6 +2,8 @@
 
 namespace SytxLabs\FileSanitizer;
 
+use Exception;
+use RuntimeException;
 use SytxLabs\FileSanitizer\Contracts\MimeDetectorInterface;
 use SytxLabs\FileSanitizer\Contracts\NameSanitizerInterface;
 use SytxLabs\FileSanitizer\Contracts\OutputInterface;
@@ -25,8 +27,6 @@ use SytxLabs\FileSanitizer\Stream\FileChunker;
 use SytxLabs\FileSanitizer\Stream\FileWriter;
 use SytxLabs\FileSanitizer\Stream\NullOutput;
 use SytxLabs\FileSanitizer\Stream\NullStream;
-use Exception;
-use RuntimeException;
 
 final class FileSanitizer
 {
@@ -48,12 +48,12 @@ final class FileSanitizer
      * @param class-string<NameSanitizerInterface>|NameSanitizerInterface|null $nameSanitizer
      */
     public function __construct(
-        private readonly string|MimeDetectorInterface|null $mimeDetector = null,
-        private readonly string|ScannerInterface|null $scanner = null,
-        private readonly string|StreamInterface|null $input = null,
-        private readonly string|OutputInterface|null $output = null,
+        private readonly MimeDetectorInterface|string|null $mimeDetector = null,
+        private readonly ScannerInterface|string|null $scanner = null,
+        private readonly StreamInterface|string|null $input = null,
+        private readonly OutputInterface|string|null $output = null,
         ?array $sanitizerCandidates = null,
-        private readonly string|NameSanitizerInterface|null $nameSanitizer = null,
+        private readonly NameSanitizerInterface|string|null $nameSanitizer = null,
     ) {
         $this->sanitizerCandidates = $sanitizerCandidates ?? self::DEFAULT_SANITIZER_CLASSES;
     }
@@ -294,7 +294,7 @@ final class FileSanitizer
     }
 
     /** @return class-string<SanitizerInterface>|SanitizerInterface|null */
-    private function resolveSanitizer(string $mimeType, string $path): string|SanitizerInterface|null
+    private function resolveSanitizer(string $mimeType, string $path): SanitizerInterface|string|null
     {
         foreach ($this->sanitizerCandidates as $candidate) {
             if ($candidate instanceof SanitizerInterface) {

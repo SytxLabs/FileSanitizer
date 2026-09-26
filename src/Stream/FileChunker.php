@@ -30,14 +30,14 @@ final class FileChunker implements StreamInterface
         $this->close();
     }
 
-    public function filePath(): string
-    {
-        return $this->path;
-    }
-
     public function __toString(): string
     {
         return $this->readAll();
+    }
+
+    public function filePath(): string
+    {
+        return $this->path;
     }
 
     public function read(int $length): false|string

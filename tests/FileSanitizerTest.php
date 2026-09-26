@@ -101,7 +101,8 @@ final class FileSanitizerTest extends TestCase
      */
     private function fakeScanner(ScanReport $report): ScannerInterface
     {
-        $scanner = new class implements ScannerInterface {
+        $scanner = new class implements ScannerInterface
+        {
             public ScanReport $report;
 
             public function __construct(?StreamInterface $stream = null, ?array $options = null)
@@ -124,7 +125,8 @@ final class FileSanitizerTest extends TestCase
 
     private function fakeSanitizer(bool $copyUnchanged): SanitizerInterface
     {
-        $sanitizer = new class implements SanitizerInterface {
+        $sanitizer = new class implements SanitizerInterface
+        {
             public bool $copyUnchanged;
 
             public function __construct(?StreamInterface $stream = null, ?OutputInterface $output = null, ?array $options = null)

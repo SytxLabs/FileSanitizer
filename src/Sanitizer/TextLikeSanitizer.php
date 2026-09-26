@@ -70,7 +70,9 @@ final class TextLikeSanitizer implements SanitizerInterface
         }
         if ($i > 0) {
             $leadByte = ord($chunk[$i - 1]);
-            if (match (true) {($leadByte & 0xE0) === 0xC0 => 2, ($leadByte & 0xF0) === 0xE0 => 3, ($leadByte & 0xF8) === 0xF0 => 4, default => 1} > $len - ($i - 1)) {
+            if (match (true) {
+                ($leadByte & 0xE0) === 0xC0 => 2, ($leadByte & 0xF0) === 0xE0 => 3, ($leadByte & 0xF8) === 0xF0 => 4, default => 1
+            } > $len - ($i - 1)) {
                 $i--;
             }
         }
