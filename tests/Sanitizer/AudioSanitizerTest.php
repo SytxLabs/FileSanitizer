@@ -6,6 +6,8 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use SytxLabs\FileSanitizer\Dto\Issue;
 use SytxLabs\FileSanitizer\Sanitizer\AudioSanitizer;
+use SytxLabs\FileSanitizer\Stream\FileChunker;
+use SytxLabs\FileSanitizer\Stream\FileWriter;
 
 class AudioSanitizerTest extends TestCase
 {
@@ -30,7 +32,7 @@ class AudioSanitizerTest extends TestCase
 
     public function testSupportsKnownAudioMimeTypes(): void
     {
-        $sanitizer = new AudioSanitizer();
+        $sanitizer = $this->makeSanitizer('probe.bin', 'x');
 
         $this->assertTrue($sanitizer->supports('audio/mpeg', 'song.mp3'));
         $this->assertTrue($sanitizer->supports('audio/wav', 'sound.wav'));
@@ -42,7 +44,7 @@ class AudioSanitizerTest extends TestCase
 
     public function testSupportsKnownAudioExtensionsEvenIfMimeIsGeneric(): void
     {
-        $sanitizer = new AudioSanitizer();
+        $sanitizer = $this->makeSanitizer('probe.bin', 'x');
 
         $this->assertTrue($sanitizer->supports('application/octet-stream', 'song.mp3'));
         $this->assertTrue($sanitizer->supports('application/octet-stream', 'sound.wav'));
@@ -54,7 +56,7 @@ class AudioSanitizerTest extends TestCase
 
     public function testDoesNotSupportUnknownFiles(): void
     {
-        $sanitizer = new AudioSanitizer();
+        $sanitizer = $this->makeSanitizer('probe.bin', 'x');
 
         $this->assertFalse($sanitizer->supports('text/plain', 'note.txt'));
         $this->assertFalse($sanitizer->supports('application/pdf', 'file.pdf'));
@@ -63,12 +65,11 @@ class AudioSanitizerTest extends TestCase
 
     public function testRemovesMp3Id3v1Tag(): void
     {
-        $sanitizer = new AudioSanitizer();
-
         $audioData = str_repeat("\x00", 1024) . 'TAG' . str_repeat('A', 125);
 
         $input = $this->writeTempFile('sample.mp3', $audioData);
         $output = $this->tempPath('clean.mp3');
+        $sanitizer = new AudioSanitizer(new FileChunker($input), new FileWriter($output));
 
         $report = $sanitizer->sanitize($input, $output, true);
 
@@ -86,8 +87,6 @@ class AudioSanitizerTest extends TestCase
 
     public function testRemovesMp3Id3v2Tag(): void
     {
-        $sanitizer = new AudioSanitizer();
-
         $payload = str_repeat("\x11", 512);
 
         // ID3 header with syncsafe size 16 bytes: 00 00 00 10
@@ -98,6 +97,7 @@ class AudioSanitizerTest extends TestCase
 
         $input = $this->writeTempFile('sample.mp3', $audioData);
         $output = $this->tempPath('clean.mp3');
+        $sanitizer = new AudioSanitizer(new FileChunker($input), new FileWriter($output));
 
         $report = $sanitizer->sanitize($input, $output, true);
 
@@ -114,12 +114,11 @@ class AudioSanitizerTest extends TestCase
 
     public function testRemovesSuspiciousTextualPayloadsFromOgg(): void
     {
-        $sanitizer = new AudioSanitizer();
-
         $audioData = 'OggS' . str_repeat("\x00", 32) . '<script>alert(1)</script>ok';
 
         $input = $this->writeTempFile('sample.ogg', $audioData);
         $output = $this->tempPath('clean.ogg');
+        $sanitizer = new AudioSanitizer(new FileChunker($input), new FileWriter($output));
 
         $report = $sanitizer->sanitize($input, $output, true);
 
@@ -133,6 +132,13 @@ class AudioSanitizerTest extends TestCase
         $codes = $this->issueCodes($report->issues);
         $this->assertContains('audio_textual_payload_removed', $codes);
         $this->assertContains('audio_rewritten', $codes);
+    }
+
+    private function makeSanitizer(string $inputName, string $content): AudioSanitizer
+    {
+        $input = $this->writeTempFile($inputName, $content);
+        $output = $this->tempPath('out-' . $inputName);
+        return new AudioSanitizer(new FileChunker($input), new FileWriter($output));
     }
 
     private function writeTempFile(string $name, string $content): string

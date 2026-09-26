@@ -7,5 +7,19 @@
         <testsuite name="Feature Tests">
             <directory suffix=".php">./tests/Sanitizer</directory>
         </testsuite>
+        <testsuite name="Stream Tests">
+            <directory suffix=".php">./tests/Stream</directory>
+        </testsuite>
+        <testsuite name="Decoder Tests">
+            <directory suffix=".php">./tests/Decoder</directory>
+        </testsuite>
+        <testsuite name="Memory Safety Tests">
+            <file>./tests/MemorySafetyTest.php</file>
+        </testsuite>
+        <testsuite name="Core Tests">
+            <file>./tests/NameSanitizerTest.php</file>
+            <file>./tests/FileSanitizerTest.php</file>
+            <file>./tests/FileSanitizerDataInputTest.php</file>
+        </testsuite>
     </testsuites>
 </phpunit>

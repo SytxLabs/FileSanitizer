@@ -5,6 +5,8 @@ namespace SytxLabs\FileSanitizer\Tests\Sanitizer;
 use Exception;
 use PHPUnit\Framework\TestCase;
 use SytxLabs\FileSanitizer\Sanitizer\PdfSanitizer;
+use SytxLabs\FileSanitizer\Stream\FileChunker;
+use SytxLabs\FileSanitizer\Stream\FileWriter;
 
 class PdfSanitizerTest extends TestCase
 {
@@ -37,11 +39,43 @@ class PdfSanitizerTest extends TestCase
         trailer
         <</Root 1 0 R>>');
 
-        (new PdfSanitizer())->sanitize($input, $output, true);
+        (new PdfSanitizer(new FileChunker($input), new FileWriter($output)))->sanitize($input, $output, true);
         $clean = (string) file_get_contents($output);
         self::assertStringContainsString('PDF-1.7', $clean);
         self::assertStringContainsString('1 0 obj', $clean);
         self::assertStringContainsString('2 0 obj', $clean);
         self::assertStringNotContainsString('app.alert', strtolower($clean));
+    }
+
+    public function testNeutralizesJavaScriptHiddenInsideFlateDecodeStream(): void
+    {
+        $input = $this->tempDir . '/hidden.pdf';
+        $output = $this->tempDir . '/hidden.sanitized.pdf';
+
+        $hiddenJs = 'this.exportDataObject({cName:"x"}); /JavaScript trigger';
+        $compressed = gzcompress($hiddenJs);
+
+        file_put_contents($input, "%PDF-1.4\n"
+            . '1 0 obj' . "\n<< /Filter /FlateDecode /Length " . strlen($compressed) . " >>\nstream\n"
+            . $compressed . "\nendstream\nendobj\n%%EOF");
+
+        (new PdfSanitizer(new FileChunker($input), new FileWriter($output)))->sanitize($input, $output, true);
+        $clean = (string) file_get_contents($output);
+
+        self::assertStringNotContainsString($compressed, $clean);
+    }
+
+    public function testThrowsWhenActiveContentIsHiddenInStreamAndSanitizeAlwaysIsFalse(): void
+    {
+        $input = $this->tempDir . '/hidden.pdf';
+        $output = $this->tempDir . '/hidden.sanitized.pdf';
+
+        $compressed = gzcompress('/JavaScript trigger');
+        file_put_contents($input, "%PDF-1.4\n"
+            . '1 0 obj' . "\n<< /Filter /FlateDecode /Length " . strlen($compressed) . " >>\nstream\n"
+            . $compressed . "\nendstream\nendobj\n%%EOF");
+
+        $this->expectException(\RuntimeException::class);
+        (new PdfSanitizer(new FileChunker($input), new FileWriter($output)))->sanitize($input, $output, false);
     }
 }

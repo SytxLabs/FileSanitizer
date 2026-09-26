@@ -1,10 +1,11 @@
 <?php
 
-namespace SytxLabs\FileSanitizer\Support;
+namespace SytxLabs\FileSanitizer\MimeDetector;
 
 use RuntimeException;
+use SytxLabs\FileSanitizer\Contracts\MimeDetectorInterface;
 
-final class MimeDetector
+class MimeDetector implements MimeDetectorInterface
 {
     public function detect(string $path): string
     {

@@ -4,10 +4,11 @@ namespace SytxLabs\FileSanitizer\Tests\Scanner;
 
 use Exception;
 use PHPUnit\Framework\TestCase;
-use SytxLabs\FileSanitizer\Scanner\PatternScanner;
+use SytxLabs\FileSanitizer\Scanner\ArchiveScanner;
+use SytxLabs\FileSanitizer\Stream\FileChunker;
 use ZipArchive;
 
-final class PatternScannerTest extends TestCase
+final class ArchiveScannerTest extends TestCase
 {
     private string $tempDir;
 
@@ -37,7 +38,7 @@ final class PatternScannerTest extends TestCase
         $zip->addFile($nestedZip, 'nested.zip');
         $zip->close();
 
-        $report = (new PatternScanner())->scan($outerZip, 'application/zip');
+        $report = (new ArchiveScanner(new FileChunker($outerZip)))->scan($outerZip, 'application/zip');
 
         self::assertFalse($report->safe);
         self::assertTrue($this->containsIssueCode($report->issues, 'archive_embedded_script'));
@@ -51,7 +52,7 @@ final class PatternScannerTest extends TestCase
         $zip->addFromString('../evil.txt', 'hello');
         $zip->close();
 
-        $report = (new PatternScanner())->scan($zipPath, 'application/zip');
+        $report = (new ArchiveScanner(new FileChunker($zipPath)))->scan($zipPath, 'application/zip');
 
         self::assertFalse($report->safe);
         self::assertTrue($this->containsIssueCode($report->issues, 'archive_path_traversal'));

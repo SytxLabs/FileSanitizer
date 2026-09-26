@@ -3,13 +3,19 @@
 namespace SytxLabs\FileSanitizer\Sanitizer;
 
 use RuntimeException;
+use SytxLabs\FileSanitizer\Contracts\OutputInterface;
 use SytxLabs\FileSanitizer\Contracts\SanitizerInterface;
+use SytxLabs\FileSanitizer\Contracts\StreamInterface;
 use SytxLabs\FileSanitizer\Dto\Issue;
 use SytxLabs\FileSanitizer\Dto\SanitizeReport;
 use SytxLabs\FileSanitizer\Enums\IssueSeverity;
 
 final class ImageSanitizer implements SanitizerInterface
 {
+    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, private readonly ?array $options = null)
+    {
+    }
+
     public function supports(string $mimeType, string $path): bool
     {
         return in_array($mimeType, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true);
@@ -22,11 +28,11 @@ final class ImageSanitizer implements SanitizerInterface
             throw new RuntimeException('Unsupported image file.');
         }
 
+        $hadMetadata = $this->hasMetadataMarkers($inputPath, $type);
+
         $issues = [];
-        if (!file_exists(dirname($outputPath))) {
-            if (!mkdir(dirname($outputPath), 0755, true) && !is_dir(dirname($outputPath))) {
-                throw new RuntimeException('Failed to create output directory.');
-            }
+        if (!file_exists(dirname($outputPath)) && !mkdir(dirname($outputPath), 0755, true) && !is_dir(dirname($outputPath))) {
+            throw new RuntimeException('Failed to create output directory.');
         }
 
         $warning = null;
@@ -92,6 +98,23 @@ final class ImageSanitizer implements SanitizerInterface
             $issues[] = new Issue('png_metadata_warning', $warning, IssueSeverity::Warning);
         }
         $issues[] = new Issue('image_reencoded', 'Image was re-encoded to strip metadata and ancillary chunks.', IssueSeverity::Info);
-        return new SanitizeReport($outputPath, true, $issues);
+
+        return new SanitizeReport($outputPath, $hadMetadata && !$this->hasMetadataMarkers($outputPath, $type), $issues);
+    }
+
+    private function hasMetadataMarkers(string $path, int $type): bool
+    {
+        $bytes = @file_get_contents($path);
+        if ($bytes === false) {
+            return false;
+        }
+
+        return match ($type) {
+            IMAGETYPE_JPEG => str_contains($bytes, "Exif\x00\x00") || str_contains($bytes, 'http://ns.adobe.com/xap') || str_contains($bytes, 'Photoshop 3.0'),
+            IMAGETYPE_PNG => preg_match('/(?:tEXt|zTXt|iTXt|eXIf)/', $bytes) === 1,
+            IMAGETYPE_GIF => str_contains($bytes, "\x21\xFE"),
+            IMAGETYPE_WEBP => str_contains($bytes, 'EXIF') || str_contains($bytes, 'XMP '),
+            default => false,
+        };
     }
 }

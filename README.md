@@ -12,12 +12,15 @@ Pure PHP file sanitizer and scanner for uploaded files. It strips metadata where
 
 - Re-encodes supported image formats to remove metadata and ancillary chunks
 - Sanitizes HTML and SVG using strict policy-based cleanup
-- Scans PDFs for active content and applies best-effort cleanup 
+- Scans PDFs for active content, including JavaScript hidden inside compressed/encoded streams
 - Scans OOXML documents for risky content such as macros, ActiveX, and external relationships 
 - Recursively scans ZIP archives, including nested archives, with configurable safety limits
 - Scans audio files for suspicious embedded payloads and removes metadata where practical
 - Scans video files for suspicious embedded payloads and applies best-effort metadata cleanup
 - Supports sanitize-always mode for best-effort cleaning even when risky content is detected
+- Accepts input as a file path, raw string/binary payload, or base64 (including `data:` URIs)
+- Produces a cross-platform-safe filename via a dedicated name sanitizer
+- Streams input in bounded chunks instead of loading whole files into memory
 - Pure PHP implementation with no shell access, SSH, or external binaries required
 
 ## Installation
@@ -25,6 +28,8 @@ Pure PHP file sanitizer and scanner for uploaded files. It strips metadata where
 ```bash
 composer require sytxlabs/filesanitizer
 ````
+
+Requires PHP >=8.1 with the `dom`, `libxml`, `exif`, `gd`, `zip`, and `fileinfo` extensions enabled.
 
 For development and tests:
 
@@ -108,6 +113,23 @@ echo $result['sanitizedBase64'];
 `processBase64()` also accepts optional `filenameHint` and optional `mimeType` as the 2nd and 5th argument.
 If `mimeType` is `null`, it first uses Data-URI MIME (if present), otherwise detects from decoded data.
 
+## Filename sanitization
+
+An attacker-controlled filename can be cleaned on its own, independent of file content, via `sanitizeName()`. It produces a name that is safe to store or serve back on Windows, Linux, and macOS at once: path separators are stripped, only an allow-listed character set survives (ASCII letters/digits/space/`. _ - ( )`), Windows-reserved device names (`CON`, `PRN`, `COM1`, ...) are prefixed, and the result is bounded to 255 bytes.
+
+```php
+<?php
+
+use SytxLabs\FileSanitizer\FileSanitizer;
+
+$sanitizer = new FileSanitizer();
+
+echo $sanitizer->sanitizeName('../../etc/passwd'); // 'passwd'
+echo $sanitizer->sanitizeName('report<script>.txt'); // 'report_script_.txt'
+```
+
+`process()` and the string/binary/base64 variants apply the same sanitizer to the output filename automatically.
+
 ## sanitizeAlways mode
 
 When `sanitizeAlways` is enabled, FileSanitizer will attempt best-effort sanitization even if risky content is detected during scanning.
@@ -174,7 +196,7 @@ The scanner looks for suspicious patterns and risky structures such as:
 
 * inline JavaScript-style payloads
 * dangerous HTML or SVG constructs
-* active PDF actions
+* active PDF actions, including ones hidden inside compressed or encoded PDF streams
 * suspicious archive paths and nested archive abuse
 * risky embedded strings in audio and video containers
 * macros, ActiveX, and external relationships in OOXML files
@@ -188,6 +210,14 @@ Supported sanitizers attempt to reduce risk by:
 * stripping metadata where practical
 * rewriting selected file formats into safer forms
 * applying best-effort cleanup to complex containers
+
+## PDF scanning
+
+PDFs are streamed in bounded chunks rather than loaded whole, so scanning memory usage stays flat regardless of file size.
+
+* A raw pass matches action name objects (`/JavaScript`, `/Launch`, `/AA`, `/RichMedia`, `/XFA`, `/SubmitForm`, `/GoToR`, `/Encrypt`), decoding PDF name hex-escapes (`#XX`) first so an obfuscated name like `/J#61vaScript` is still recognised.
+* Every `stream ... endstream` block is located, its filter chain resolved from the stream dictionary, and decoded (`FlateDecoder`, `AsciiHexDecoder`, `Ascii85Decoder`, `RunLengthDecoder`, `LzwDecoder`, chainable for filter arrays) so JavaScript hidden inside a compressed object stream is still found; decoded content is also checked for embedded executables, archives, and nested PDFs.
+* A stream whose filter chain cannot be fully decoded is rejected fail-closed, except image-codec/XObject streams, which are skipped rather than decoded since they cannot carry an object dictionary.
 
 ## Archive scanning
 
@@ -270,9 +300,12 @@ Included PHPUnit coverage exercises:
 * path traversal detection inside ZIPs
 * HTML sanitization rules
 * SVG sanitization rules
-* PDF action detection
+* PDF action detection, including decoding of chained stream filters (Flate, ASCIIHex, ASCII85, RunLength, LZW)
 * audio metadata stripping
 * video file scanning for embedded payloads and metadata stripping
+* string, binary, and base64/data-URI input handling
+* cross-platform filename sanitization
+* bounded-memory streaming behavior on large inputs
 
 ## Limitations
 
