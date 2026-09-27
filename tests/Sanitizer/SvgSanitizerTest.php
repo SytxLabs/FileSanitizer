@@ -5,6 +5,8 @@ namespace SytxLabs\FileSanitizer\Tests\Sanitizer;
 use Exception;
 use PHPUnit\Framework\TestCase;
 use SytxLabs\FileSanitizer\Sanitizer\SvgSanitizer;
+use SytxLabs\FileSanitizer\Stream\FileChunker;
+use SytxLabs\FileSanitizer\Stream\FileWriter;
 
 final class SvgSanitizerTest extends TestCase
 {
@@ -32,7 +34,7 @@ final class SvgSanitizerTest extends TestCase
         $output = $this->tempDir . '/output.svg';
         file_put_contents($input, '<svg xmlns="http://www.w3.org/2000/svg"><metadata>x</metadata><script>alert(1)</script><image href="https://evil.test/x.png"/><rect onclick="x()" style="background:url(javascript:1)" width="10" height="10"/></svg>');
 
-        (new SvgSanitizer())->sanitize($input, $output);
+        (new SvgSanitizer(new FileChunker($input), new FileWriter($output)))->sanitize($input, $output);
         $clean = (string) file_get_contents($output);
 
         self::assertStringNotContainsString('<script', strtolower($clean));

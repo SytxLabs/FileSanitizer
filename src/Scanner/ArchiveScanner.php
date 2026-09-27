@@ -3,67 +3,37 @@
 namespace SytxLabs\FileSanitizer\Scanner;
 
 use SytxLabs\FileSanitizer\Contracts\ScannerInterface;
+use SytxLabs\FileSanitizer\Contracts\StreamInterface;
 use SytxLabs\FileSanitizer\Dto\Issue;
 use SytxLabs\FileSanitizer\Dto\ScanReport;
 use SytxLabs\FileSanitizer\Enums\IssueSeverity;
 use ZipArchive;
 
-final class PatternScanner implements ScannerInterface
+final class ArchiveScanner implements ScannerInterface
 {
-    public function __construct(private readonly int $maxArchiveDepth = 3, private readonly int $maxArchiveEntries = 1000, private readonly int $maxExpandedBytes = 25000000)
+    private readonly int $maxArchiveDepth;
+
+    private readonly int $maxArchiveEntries;
+
+    private readonly int $maxExpandedBytes;
+
+    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?array $options = null)
     {
+        $options ??= [];
+        $this->maxArchiveDepth = $options['maxArchiveDepth'] ?? 3;
+        $this->maxArchiveEntries = $options['maxArchiveEntries'] ?? 1000;
+        $this->maxExpandedBytes = $options['maxExpandedBytes'] ?? 25000000;
+    }
+
+    public function supports(string $mimeType, string $path): bool
+    {
+        return in_array($mimeType, ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'], true) || str_ends_with(strtolower($path), '.zip');
     }
 
     public function scan(string $path, string $mimeType): ScanReport
     {
-        $issues = [];
-        $content = @file_get_contents($path);
-
-        if ($content === false) {
-            return ScanReport::unsafe([new Issue('read_failed', 'The file could not be read for scanning.', IssueSeverity::Error)]);
-        }
-
-        $patterns = [
-            'xss_script_tag' => '/<\s*script\b/i',
-            'xss_javascript_url' => '/javascript\s*:/i',
-            'xss_data_html' => '/data\s*:\s*text\/html/i',
-            'xss_inline_handler' => '/on(?:load|error|click|mouseover|focus|submit|pointerdown)\s*=/i',
-            'xss_eval' => '/\beval\s*\(/i',
-            'xss_function_ctor' => '/\b(?:new\s+function\s*\(|function\s*\(|new\s+Function\s*\()/i',
-            'dom_sink' => '/(?:innerhtml|outerhtml|document\.write|insertadjacenthtml)\b/i',
-            'cookie_access' => '/document\.cookie/i',
-            'iframe_embed' => '/<\s*iframe\b/i',
-            'svg_foreignobject' => '/<\s*foreignobject\b/i',
-            'svg_animate' => '/<\s*animate\b/i',
-            //            'php_tag' => '/<\?(?:php|=)?/i',
-            'php_exec' => '/\b(?:shell_exec|exec|system|passthru|proc_open|popen)\s*\(/i',
-            'pdf_js' => '/\/JavaScript\b|\/JS\b|\/OpenAction\b|\/AA\b/i',
-            'html_meta_refresh' => '/<meta[^>]+http-equiv\s*=\s*["\']?refresh/i',
-            'html_base_tag' => '/<\s*base\b/i',
-            'css_expression' => '/expression\s*\(/i',
-            'css_import' => '/@import\b/i',
-        ];
-
-        foreach ($patterns as $code => $pattern) {
-            if (preg_match($pattern, $content) === 1) {
-                $issues[] = new Issue($code, sprintf('Suspicious pattern detected: %s', $code), IssueSeverity::Error);
-            }
-        }
-
-        if (str_starts_with($mimeType, 'image/svg') && preg_match('/<\s*(?:script|iframe|embed|object|foreignObject|animate|set)\b/i', $content) === 1) {
-            $issues[] = new Issue('svg_active_content', 'SVG contains active or externally-referential content elements.', IssueSeverity::Error);
-        }
-
-        if ($this->isArchiveMimeType($mimeType, $path)) {
-            $issues = [...$issues, ...$this->scanArchive($path, 0, basename($path), 0)];
-        }
-
+        $issues = $this->scanArchive($path, 0, basename($path), 0);
         return $issues === [] ? ScanReport::clean() : ScanReport::unsafe($issues);
-    }
-
-    private function isArchiveMimeType(string $mimeType, string $path): bool
-    {
-        return in_array($mimeType, ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'], true) || str_ends_with(strtolower($path), '.zip');
     }
 
     /** @return list<Issue> */

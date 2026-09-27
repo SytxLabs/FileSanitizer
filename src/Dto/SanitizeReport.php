@@ -7,8 +7,10 @@ use Stringable;
 
 final class SanitizeReport implements JsonSerializable, Stringable
 {
-    /** @param array<Issue> $issues */
-    public function __construct(public readonly string $outputPath, public readonly bool $metadataRemoved, public readonly array $issues = [], public readonly array $context = [])
+    /**
+     * @param array<Issue> $issues
+     */
+    public function __construct(public readonly string $outputPath, public readonly bool $metadataRemoved, public readonly array $issues = [], public readonly array $context = [], public readonly bool $unchanged = false)
     {
     }
 
@@ -24,6 +26,7 @@ final class SanitizeReport implements JsonSerializable, Stringable
             'metadataRemoved' => $this->metadataRemoved,
             'issues' => $this->issues,
             'context' => $this->context,
+            'unchanged' => $this->unchanged,
         ];
     }
 

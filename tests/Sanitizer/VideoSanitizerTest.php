@@ -6,6 +6,8 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use SytxLabs\FileSanitizer\Dto\Issue;
 use SytxLabs\FileSanitizer\Sanitizer\VideoSanitizer;
+use SytxLabs\FileSanitizer\Stream\FileChunker;
+use SytxLabs\FileSanitizer\Stream\FileWriter;
 
 class VideoSanitizerTest extends TestCase
 {
@@ -29,7 +31,7 @@ class VideoSanitizerTest extends TestCase
 
     public function testSupportsKnownVideoMimeTypes(): void
     {
-        $sanitizer = new VideoSanitizer();
+        $sanitizer = $this->makeSanitizer('probe.bin', 'x');
 
         $this->assertTrue($sanitizer->supports('video/mp4', 'video.mp4'));
         $this->assertTrue($sanitizer->supports('video/quicktime', 'video.mov'));
@@ -40,7 +42,7 @@ class VideoSanitizerTest extends TestCase
 
     public function testSupportsKnownVideoExtensionsWithGenericMime(): void
     {
-        $sanitizer = new VideoSanitizer();
+        $sanitizer = $this->makeSanitizer('probe.bin', 'x');
 
         $this->assertTrue($sanitizer->supports('application/octet-stream', 'video.mp4'));
         $this->assertTrue($sanitizer->supports('application/octet-stream', 'video.mov'));
@@ -51,21 +53,36 @@ class VideoSanitizerTest extends TestCase
 
     public function testDoesNotSupportUnknownFiles(): void
     {
-        $sanitizer = new VideoSanitizer();
+        $sanitizer = $this->makeSanitizer('probe.bin', 'x');
 
         $this->assertFalse($sanitizer->supports('text/plain', 'note.txt'));
         $this->assertFalse($sanitizer->supports('application/pdf', 'file.pdf'));
         $this->assertFalse($sanitizer->supports('image/png', 'image.png'));
     }
 
+    /**
+     * libmagic falls back to application/octet-stream for huge amounts of unrelated binary or
+     * control-byte-laden content, not just unrecognized video containers. Without a video
+     * extension to corroborate it, that generic mimetype must not be claimed here — sanitize()
+     * only knows how to dispatch by extension and would otherwise throw "Unsupported video type"
+     * for arbitrary non-video content the resolver funneled to it.
+     */
+    public function testDoesNotSupportGenericOctetStreamWithoutAVideoExtension(): void
+    {
+        $sanitizer = $this->makeSanitizer('probe.bin', 'x');
+
+        $this->assertFalse($sanitizer->supports('application/octet-stream', 'note.txt'));
+        $this->assertFalse($sanitizer->supports('application/octet-stream', 'upload.bin'));
+        $this->assertFalse($sanitizer->supports('application/octet-stream', 'noextension'));
+    }
+
     public function testRemovesSuspiciousPayloadFromWebmLikeContainer(): void
     {
-        $sanitizer = new VideoSanitizer();
-
         $videoData = "\x1A\x45\xDF\xA3" . str_repeat("\x00", 32) . '<script>alert(1)</script>ok';
 
         $input = $this->writeTempFile('sample.webm', $videoData);
         $output = $this->tempPath('clean.webm');
+        $sanitizer = new VideoSanitizer(new FileChunker($input), new FileWriter($output));
 
         $report = $sanitizer->sanitize($input, $output, true);
         $this->assertFileExists($output);
@@ -78,6 +95,59 @@ class VideoSanitizerTest extends TestCase
         $codes = $this->issueCodes($report->issues);
         $this->assertContains('video_textual_payload_removed', $codes);
         $this->assertContains('video_processed', $codes);
+    }
+
+    public function testRemovesUdtaAtomFromMp4Container(): void
+    {
+        $ftyp = pack('N', 16) . 'ftyp' . 'isomavc1';
+        $udta = pack('N', 16) . 'udta' . 'DEADBEEF';
+        $mdat = pack('N', 8 + 7) . 'mdat' . 'ok-data';
+
+        $input = $this->writeTempFile('sample.mp4', $ftyp . $udta . $mdat);
+        $output = $this->tempPath('clean.mp4');
+        $sanitizer = new VideoSanitizer(new FileChunker($input), new FileWriter($output));
+
+        $report = $sanitizer->sanitize($input, $output, true);
+        $this->assertFileExists($output);
+
+        $cleaned = file_get_contents($output);
+        $this->assertIsString($cleaned);
+        $this->assertStringNotContainsString('DEADBEEF', $cleaned);
+        $this->assertStringContainsString('ftyp', $cleaned);
+        $this->assertStringContainsString('ok-data', $cleaned);
+
+        $codes = $this->issueCodes($report->issues);
+        $this->assertContains('video_metadata_atom_removed', $codes);
+    }
+
+    public function testRemovesJunkChunkFromAviContainer(): void
+    {
+        $junk = 'JUNK' . pack('V', 8) . 'PADPADPA';
+        $hdrl = 'hdrl' . pack('V', 8) . 'hdr-data';
+        $body = 'AVI ' . $junk . $hdrl;
+        $riff = 'RIFF' . pack('V', strlen($body)) . $body;
+
+        $input = $this->writeTempFile('sample.avi', $riff);
+        $output = $this->tempPath('clean.avi');
+        $sanitizer = new VideoSanitizer(new FileChunker($input), new FileWriter($output));
+
+        $report = $sanitizer->sanitize($input, $output, true);
+        $this->assertFileExists($output);
+
+        $cleaned = file_get_contents($output);
+        $this->assertIsString($cleaned);
+        $this->assertStringNotContainsString('PADPADPA', $cleaned);
+        $this->assertStringContainsString('hdr-data', $cleaned);
+
+        $codes = $this->issueCodes($report->issues);
+        $this->assertContains('avi_metadata_chunk_removed', $codes);
+    }
+
+    private function makeSanitizer(string $inputName, string $content): VideoSanitizer
+    {
+        $input = $this->writeTempFile($inputName, $content);
+        $output = $this->tempPath('out-' . $inputName);
+        return new VideoSanitizer(new FileChunker($input), new FileWriter($output));
     }
 
     private function writeTempFile(string $name, string $content): string
