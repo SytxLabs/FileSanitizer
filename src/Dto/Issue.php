@@ -17,6 +17,7 @@ final class Issue implements JsonSerializable, Stringable
         return sprintf('[%s] %s: %s', $this->severity->value, $this->code, $this->message);
     }
 
+    /** @return array{code: string, message: string, severity: string} */
     public function toArray(): array
     {
         return [
@@ -26,6 +27,7 @@ final class Issue implements JsonSerializable, Stringable
         ];
     }
 
+    /** @return array{code: string, message: string, severity: string} */
     public function jsonSerialize(): array
     {
         return $this->toArray();

@@ -17,7 +17,14 @@ final class ArchiveScanner implements ScannerInterface
 
     private readonly int $maxExpandedBytes;
 
-    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?array $options = null)
+    /**
+     * ArchiveScanner works directly on the file path via ZipArchive, so unlike the other scanners
+     * it never touches the injected stream; it exists only to satisfy ScannerInterface's
+     * constructor signature for uniform DI-based instantiation.
+     *
+     * @param array<string, mixed>|null $options
+     */
+    public function __construct(?StreamInterface $stream = null, ?array $options = null)
     {
         $options ??= [];
         $this->maxArchiveDepth = $options['maxArchiveDepth'] ?? 3;

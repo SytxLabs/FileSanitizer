@@ -7,7 +7,7 @@ use Stringable;
 
 final class ScanReport implements JsonSerializable, Stringable
 {
-    /** @param array<Issue> $issues */
+    /** @param list<Issue> $issues */
     public function __construct(public readonly bool $safe, public readonly array $issues = [])
     {
     }
@@ -28,6 +28,7 @@ final class ScanReport implements JsonSerializable, Stringable
         return new self(false, $issues);
     }
 
+    /** @return array{safe: bool, issues: list<Issue>} */
     public function toArray(): array
     {
         return [
@@ -36,6 +37,7 @@ final class ScanReport implements JsonSerializable, Stringable
         ];
     }
 
+    /** @return array{safe: bool, issues: list<Issue>} */
     public function jsonSerialize(): array
     {
         return $this->toArray();

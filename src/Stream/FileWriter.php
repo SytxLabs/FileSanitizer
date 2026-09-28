@@ -43,7 +43,7 @@ final class FileWriter implements OutputInterface
         }
     }
 
-    public function size(): false|int
+    public function size(): int
     {
         return $this->bytesWritten;
     }

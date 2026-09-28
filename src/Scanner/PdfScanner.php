@@ -2,6 +2,7 @@
 
 namespace SytxLabs\FileSanitizer\Scanner;
 
+use RuntimeException;
 use SytxLabs\FileSanitizer\Contracts\DecoderInterface;
 use SytxLabs\FileSanitizer\Contracts\ScannerInterface;
 use SytxLabs\FileSanitizer\Contracts\StreamInterface;
@@ -61,7 +62,8 @@ final class PdfScanner implements ScannerInterface
 
     private readonly int $bufferSize;
 
-    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?array $options = null)
+    /** @param array<string, mixed>|null $options */
+    public function __construct(private readonly ?StreamInterface $stream = null, ?array $options = null)
     {
         $options ??= [];
         $this->decoders = $options['decoders'] ?? [new FlateDecoder(), new AsciiHexDecoder(), new Ascii85Decoder(), new RunLengthDecoder(), new LzwDecoder()];
@@ -77,6 +79,9 @@ final class PdfScanner implements ScannerInterface
 
     public function scan(string $path, string $mimeType): ScanReport
     {
+        if ($this->stream === null) {
+            throw new RuntimeException('PdfScanner requires a stream to be injected via the constructor.');
+        }
         $this->stream->rewind();
 
         $found = [];
@@ -172,6 +177,10 @@ final class PdfScanner implements ScannerInterface
         $state['body'] .= $piece;
     }
 
+    /**
+     * @param array<string, mixed> $state
+     * @param array<string, Issue> $found
+     */
     private function finishStream(array &$state, array &$found): void
     {
         if ($state['skip']) {
@@ -206,6 +215,7 @@ final class PdfScanner implements ScannerInterface
         }
     }
 
+    /** @param list<string> $filters */
     private function decodeChain(string $body, array $filters): ?string
     {
         $data = $body;
@@ -237,6 +247,7 @@ final class PdfScanner implements ScannerInterface
         return null;
     }
 
+    /** @param list<string>|null $filters */
     private function shouldSkipStream(?array $filters, bool $isObjStm, bool $isEmbedded, bool $isImage): bool
     {
         if ($filters === null) {
@@ -325,7 +336,9 @@ final class PdfScanner implements ScannerInterface
         $filters = null;
         if (preg_match_all('~/Filter\s*(\[[^\]]*\]|/[A-Za-z0-9]+|\d+\s+\d+\s+R)~', $dict, $mm) > 0) {
             $value = end($mm[1]);
-            if ($value !== false && preg_match_all('~/([A-Za-z0-9]+)~', $value, $fm) && $fm[1] !== []) {
+            if ($value !== false && preg_match_all('~/([A-Za-z0-9]+)~', $value, $fm)) {
+                // Reaching here means preg_match_all() found at least one match, so $fm[1] is
+                // guaranteed non-empty.
                 $filters = $fm[1];
             } else {
                 $filters = ['__unresolved__'];
@@ -375,6 +388,8 @@ final class PdfScanner implements ScannerInterface
 
     private function decodePdfNameHex(string $text): string
     {
-        return preg_replace_callback('/#([0-9A-Fa-f]{2})/', static fn (array $m): string => chr(hexdec($m[1])), $text) ?? $text;
+        // The pattern captures exactly 2 hex digits, so hexdec() always yields a value in [0, 255];
+        // the mask makes that bound explicit rather than relying on the pattern alone.
+        return preg_replace_callback('/#([0-9A-Fa-f]{2})/', static fn (array $m): string => chr((int) hexdec($m[1]) & 0xFF), $text) ?? $text;
     }
 }

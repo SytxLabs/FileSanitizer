@@ -3,6 +3,7 @@
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 [![Check code style](https://github.com/SytxLabs/FileSanitizer/actions/workflows/code-style.yml/badge.svg?style=flat-square)](https://github.com/SytxLabs/FileSanitizer/actions/workflows/code-style.yml)
 [![Tests](https://github.com/SytxLabs/FileSanitizer/actions/workflows/tests.yml/badge.svg?style=flat-square)](https://github.com/SytxLabs/FileSanitizer/actions/workflows/tests.yml)
+[![Static analysis](https://github.com/SytxLabs/FileSanitizer/actions/workflows/static-analysis.yml/badge.svg?style=flat-square)](https://github.com/SytxLabs/FileSanitizer/actions/workflows/static-analysis.yml)
 [![Latest Version on Packagist](https://poser.pugx.org/sytxlabs/filesanitizer/v/stable?format=flat-square)](https://packagist.org/packages/sytxlabs/filesanitizer)
 [![Total Downloads](https://poser.pugx.org/sytxlabs/filesanitizer/downloads?format=flat-square)](https://packagist.org/packages/sytxlabs/filesanitizer)
 
@@ -35,7 +36,9 @@ For development and tests:
 
 ```bash
 composer install
-composer test
+composer test   # PHPUnit: unit, integration, and fuzz tests
+composer stan   # PHPStan static analysis (level 8)
+composer cs     # code style check (Pint)
 ```
 
 ## Quick start
@@ -292,9 +295,9 @@ FileSanitizer includes best-effort support for common video containers.
 
 Video sanitization is best-effort and does not transcode or fully rebuild media containers. Without external tools such as FFmpeg, full structural video rewriting is intentionally out of scope.
 
-## Test coverage
+## Test coverage, static analysis, and fuzzing
 
-Included PHPUnit coverage exercises:
+The PHPUnit suite (`composer test`) covers essentially the entire library — around 98% line coverage — including:
 
 * nested ZIP detection
 * path traversal detection inside ZIPs
@@ -305,7 +308,11 @@ Included PHPUnit coverage exercises:
 * video file scanning for embedded payloads and metadata stripping
 * string, binary, and base64/data-URI input handling
 * cross-platform filename sanitization
-* bounded-memory streaming behavior on large inputs
+* bounded-memory streaming behavior, including chunk-boundary edge cases, on large inputs
+
+`tests/FuzzTest.php` is part of the default suite and fuzz-tests the library's hand-rolled byte-level parsers — the PDF stream decoders, the SVG/HTML tokenizers, `PdfScanner`, and the WAV/AVI/MP4 chunk walkers — since those are exactly the places most likely to mishandle adversarial or malformed input. It combines pure random bytes (for the decoders, which must tolerate arbitrary garbage) with point-mutations of known-good fixtures (for the structured formats, where purely random bytes rarely get close enough to the real format to exercise interesting near-valid branches), asserting that nothing throws, hangs, or otherwise misbehaves. The run is seeded (override with the `FSZ_FUZZ_SEED` environment variable) so a failure is reproducible.
+
+Static analysis runs via PHPStan at level 8 (`composer stan`, config in `phpstan.neon`, `src/` only).
 
 ## Limitations
 

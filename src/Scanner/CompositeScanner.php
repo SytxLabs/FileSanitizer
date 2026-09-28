@@ -13,7 +13,8 @@ final class CompositeScanner implements ScannerInterface
     /** @var list<ScannerInterface> */
     private readonly array $scanners;
 
-    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?array $options = null)
+    /** @param array{scanners?: list<class-string<ScannerInterface>|ScannerInterface>}|null $options */
+    public function __construct(private readonly ?StreamInterface $stream = null, ?array $options = null)
     {
         $entries = $options['scanners'] ?? self::DEFAULT_SCANNER_CLASSES;
         $this->scanners = array_map(fn (ScannerInterface|string $entry): ScannerInterface => is_string($entry) ? new $entry($this->stream) : $entry, $entries);

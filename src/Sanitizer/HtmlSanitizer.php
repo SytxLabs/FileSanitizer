@@ -21,6 +21,7 @@ final class HtmlSanitizer implements SanitizerInterface
     private const TAG_NAME_STOP_CHARS = [' ', "\t", "\n", "\r", '/', '>'];
     private const ATTR_BOUNDARY_CHARS = ["\t", "\n", "\f", "\r", ' ', '>', '/'];
 
+    /** @param array<string, mixed>|null $options */
     public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, private readonly ?array $options = null)
     {
     }
@@ -54,13 +55,6 @@ final class HtmlSanitizer implements SanitizerInterface
         $eof = false;
         $textAccum = '';
 
-        $flushText = function () use (&$textAccum, $writer) {
-            if ($textAccum !== '') {
-                $writer->write($this->textOut($textAccum));
-                $textAccum = '';
-            }
-        };
-
         while (!$eof) {
             $chunk = $stream->read($bufferSize);
             if ($chunk === false || $chunk === '') {
@@ -86,7 +80,7 @@ final class HtmlSanitizer implements SanitizerInterface
 
             while (true) {
                 if ($rawTextTag !== null) {
-                    $pos = $this->resumeRawText($buffer, $pos, $len, $eof, $rawTextTag, $textAccum, $flushText, $carry);
+                    $pos = $this->resumeRawText($buffer, $pos, $len, $eof, $rawTextTag, $textAccum, $writer, $carry);
                     if ($pos >= $len) {
                         break;
                     }
@@ -94,7 +88,7 @@ final class HtmlSanitizer implements SanitizerInterface
 
                 if ($pos >= $len) {
                     if ($eof) {
-                        $flushText();
+                        $this->flushText($textAccum, $writer);
                     }
                     break;
                 }
@@ -104,7 +98,7 @@ final class HtmlSanitizer implements SanitizerInterface
                     if ($ltPos === false) {
                         if ($eof) {
                             $textAccum .= substr($buffer, $pos);
-                            $flushText();
+                            $this->flushText($textAccum, $writer);
                             break;
                         }
                         $safeEnd = max($pos, $len - 3);
@@ -122,13 +116,13 @@ final class HtmlSanitizer implements SanitizerInterface
                 if ($pos + 1 >= $len) {
                     if ($eof) {
                         $textAccum .= '<';
-                        $flushText();
+                        $this->flushText($textAccum, $writer);
                         break;
                     }
                     $carry = substr($buffer, $pos);
                     break;
                 }
-                $flushText();
+                $this->flushText($textAccum, $writer);
                 $next = $buffer[$pos + 1];
                 if ($next === '!') {
                     $advance = $this->consumeMarkupDeclaration($buffer, $pos, $len, $eof, $writer);
@@ -167,7 +161,7 @@ final class HtmlSanitizer implements SanitizerInterface
         return $removed;
     }
 
-    private function resumeRawText(string $buffer, int $pos, int $len, bool $eof, string $rawTextTag, string &$textAccum, callable $flushText, string &$carry): int
+    private function resumeRawText(string $buffer, int $pos, int $len, bool $eof, string $rawTextTag, string &$textAccum, OutputInterface $writer, string &$carry): int
     {
         $needle = '</' . $rawTextTag;
         $needleLen = strlen($needle);
@@ -192,7 +186,7 @@ final class HtmlSanitizer implements SanitizerInterface
             if ($foundAt > $pos) {
                 $textAccum .= substr($buffer, $pos, $foundAt - $pos);
             }
-            $flushText();
+            $this->flushText($textAccum, $writer);
             return $foundAt;
         }
 
@@ -205,8 +199,16 @@ final class HtmlSanitizer implements SanitizerInterface
             return $len;
         }
         $textAccum .= substr($buffer, $holdFrom);
-        $flushText();
+        $this->flushText($textAccum, $writer);
         return $len;
+    }
+
+    private function flushText(string &$textAccum, OutputInterface $writer): void
+    {
+        if ($textAccum !== '') {
+            $writer->write($this->textOut($textAccum));
+            $textAccum = '';
+        }
     }
 
     private function consumeMarkupDeclaration(string $buffer, int $pos, int $len, bool $eof, OutputInterface $writer): ?int
@@ -315,7 +317,7 @@ final class HtmlSanitizer implements SanitizerInterface
                     $keptAttrs[] = [$lname, $decodedValue];
                     continue;
                 }
-                if (!(in_array($tagName, self::GLOBAL_ATTRIBUTES, true) || match ($tagName) {
+                if (!(in_array($lname, self::GLOBAL_ATTRIBUTES, true) || match ($tagName) {
                     'a' => in_array($lname, ['href', 'target', 'rel'], true),
                     'img' => in_array($lname, ['src', 'alt', 'width', 'height'], true),
                     'td', 'th' => in_array($lname, ['colspan', 'rowspan', 'scope'], true),

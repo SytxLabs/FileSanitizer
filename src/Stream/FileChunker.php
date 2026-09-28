@@ -42,6 +42,9 @@ final class FileChunker implements StreamInterface
 
     public function read(int $length): false|string
     {
+        if ($length < 1) {
+            return '';
+        }
         return feof($this->handle) ? false : fread($this->handle, $length);
     }
 

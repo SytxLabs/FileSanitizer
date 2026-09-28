@@ -48,4 +48,45 @@ final class FileChunkerTest extends TestCase
         $this->expectException(RuntimeException::class);
         new FileChunker($this->path . '_missing');
     }
+
+    public function testFilePathReturnsTheConstructorPath(): void
+    {
+        file_put_contents($this->path, 'x');
+        $chunker = new FileChunker($this->path);
+
+        self::assertSame($this->path, $chunker->filePath());
+        $chunker->close();
+    }
+
+    public function testToStringReturnsCompleteContent(): void
+    {
+        $content = 'hello world';
+        file_put_contents($this->path, $content);
+        $chunker = new FileChunker($this->path);
+
+        self::assertSame($content, (string) $chunker);
+        $chunker->close();
+    }
+
+    public function testReadWithNonPositiveLengthReturnsEmptyStringWithoutConsumingBytes(): void
+    {
+        file_put_contents($this->path, 'abcdef');
+        $chunker = new FileChunker($this->path);
+
+        self::assertSame('', $chunker->read(0));
+        self::assertSame('', $chunker->read(-1));
+        self::assertSame('abcdef', $chunker->read(10));
+        $chunker->close();
+    }
+
+    public function testTellReflectsCurrentReadPosition(): void
+    {
+        file_put_contents($this->path, 'abcdefgh');
+        $chunker = new FileChunker($this->path);
+
+        self::assertSame(0, $chunker->tell());
+        $chunker->read(3);
+        self::assertSame(3, $chunker->tell());
+        $chunker->close();
+    }
 }

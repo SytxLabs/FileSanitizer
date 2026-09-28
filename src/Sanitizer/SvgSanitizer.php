@@ -23,6 +23,7 @@ final class SvgSanitizer implements SanitizerInterface
     private const NAME_STOP_CHARS = [' ', "\t", "\n", "\r", '/', '>'];
     private const WHITESPACE_CHARS = [' ', "\t", "\n", "\r"];
 
+    /** @param array<string, mixed>|null $options */
     public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, private readonly ?array $options = null)
     {
     }
@@ -56,15 +57,6 @@ final class SvgSanitizer implements SanitizerInterface
         $eof = false;
         $textAccum = '';
 
-        $flushText = function () use (&$textAccum, &$stack, &$skipDepth, $writer) {
-            if ($textAccum !== '') {
-                if ($skipDepth === 0 && $stack !== []) {
-                    $writer->write($this->xmlEncode($this->decodeValue($textAccum)));
-                }
-                $textAccum = '';
-            }
-        };
-
         while (!$eof) {
             $chunk = $stream->read($bufferSize);
             if ($chunk === false || $chunk === '') {
@@ -95,7 +87,7 @@ final class SvgSanitizer implements SanitizerInterface
             while (true) {
                 if ($pos >= $len) {
                     if ($eof) {
-                        $flushText();
+                        $this->flushText($textAccum, $stack, $skipDepth, $writer);
                     }
                     break;
                 }
@@ -105,7 +97,7 @@ final class SvgSanitizer implements SanitizerInterface
                     if ($ltPos === false) {
                         if ($eof) {
                             $textAccum .= substr($buffer, $pos);
-                            $flushText();
+                            $this->flushText($textAccum, $stack, $skipDepth, $writer);
                             break;
                         }
                         $safeEnd = max($pos, $len - 3);
@@ -123,13 +115,13 @@ final class SvgSanitizer implements SanitizerInterface
                 if ($pos + 1 >= $len) {
                     if ($eof) {
                         $textAccum .= '<';
-                        $flushText();
+                        $this->flushText($textAccum, $stack, $skipDepth, $writer);
                         break;
                     }
                     $carry = substr($buffer, $pos);
                     break;
                 }
-                $flushText();
+                $this->flushText($textAccum, $stack, $skipDepth, $writer);
                 $next = $buffer[$pos + 1];
 
                 if ($next === '!') {
@@ -190,6 +182,7 @@ final class SvgSanitizer implements SanitizerInterface
         return $removed;
     }
 
+    /** @param list<string> $stack */
     private function consumeComment(string $buffer, int $pos, int $len, bool $eof, int $skipDepth, array $stack, OutputInterface $writer): ?int
     {
         $endIdx = strpos($buffer, '-->', $pos + 4);
@@ -208,6 +201,7 @@ final class SvgSanitizer implements SanitizerInterface
         return $endIdx + 3;
     }
 
+    /** @param list<string> $stack */
     private function consumeCdata(string $buffer, int $pos, int $len, bool $eof, int $skipDepth, array $stack, OutputInterface $writer): ?int
     {
         $endIdx = strpos($buffer, ']]>', $pos + 9);
@@ -274,6 +268,7 @@ final class SvgSanitizer implements SanitizerInterface
         return $endIdx + 2;
     }
 
+    /** @param list<string> $stack */
     private function consumeEndTag(string $buffer, int $pos, int $len, bool $eof, array &$stack, int &$skipDepth, OutputInterface $writer): ?int
     {
         $gtIdx = strpos($buffer, '>', $pos + 2);
@@ -291,6 +286,7 @@ final class SvgSanitizer implements SanitizerInterface
         return $gtIdx + 1;
     }
 
+    /** @param list<string> $stack */
     private function consumeStartTag(string $buffer, int $pos, int $len, bool $eof, array &$stack, int &$skipDepth, int &$removed, OutputInterface $writer): ?int
     {
         $nameEnd = $this->findTagNameEnd($buffer, $pos + 1, $len);
@@ -437,6 +433,17 @@ final class SvgSanitizer implements SanitizerInterface
                 }
             }
             $attrs[] = [$name, $value];
+        }
+    }
+
+    /** @param list<string> $stack */
+    private function flushText(string &$textAccum, array $stack, int $skipDepth, OutputInterface $writer): void
+    {
+        if ($textAccum !== '') {
+            if ($skipDepth === 0 && $stack !== []) {
+                $writer->write($this->xmlEncode($this->decodeValue($textAccum)));
+            }
+            $textAccum = '';
         }
     }
 

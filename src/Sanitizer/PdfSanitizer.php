@@ -33,6 +33,7 @@ final class PdfSanitizer implements SanitizerInterface
 
     private readonly int $streamBufferCap;
 
+    /** @param array<string, mixed>|null $options */
     public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, ?array $options = null)
     {
         $options ??= [];
@@ -111,9 +112,13 @@ final class PdfSanitizer implements SanitizerInterface
         return new SanitizeReport($outputPath, $changed, $issues);
     }
 
+    /** @param list<string> $tempFiles */
     private function runStep(string $currentPath, callable $step, array &$tempFiles): string
     {
         $target = tempnam(sys_get_temp_dir(), 'fsz_pdf_');
+        if ($target === false) {
+            throw new RuntimeException('Could not create temporary file for PDF sanitization step.');
+        }
         $in = new FileChunker($currentPath);
         $out = new FileWriter($target);
         try {
@@ -138,6 +143,7 @@ final class PdfSanitizer implements SanitizerInterface
         }, $tempFiles);
     }
 
+    /** @param list<string> $tempFiles */
     private function cleanupTempFiles(array $tempFiles): void
     {
         foreach ($tempFiles as $tempFile) {

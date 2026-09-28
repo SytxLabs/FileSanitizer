@@ -86,7 +86,7 @@ final class FileSanitizer
             throw new RuntimeException(sprintf('Input file not found: %s', $inputPath));
         }
 
-        $mimeType ??= ($this->mimeDetector ?? new MimeDetector())->detect($inputPath);
+        $mimeType ??= $this->buildInterface($this->mimeDetector, MimeDetectorInterface::class, MimeDetector::class)->detect($inputPath);
         $scan = $this->scan($inputPath, $mimeType);
         $outputPath = $this->sanitizeOutputPath($outputPath ?? $this->defaultOutputPath($inputPath));
         if (!$scan->safe && !$sanitizeAlways) {
@@ -125,6 +125,7 @@ final class FileSanitizer
         return ['mimeType' => $mimeType, 'scan' => $scan, 'sanitize' => $this->annotateUnchanged($scan, $sanitize, $inputPath)];
     }
 
+    /** @return array{mimeType:string, scan:ScanReport, sanitize:SanitizeReport} */
     public function sanitizeAlways(string $inputPath, ?string $outputPath = null): array
     {
         return $this->process($inputPath, $outputPath, true);

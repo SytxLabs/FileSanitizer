@@ -114,6 +114,39 @@ final class FileSanitizerDataInputTest extends TestCase
         self::assertContains('no_sanitizer', $codes);
     }
 
+    public function testProcessBase64BooleanThirdArgumentIsTreatedAsSanitizeAlwaysShorthand(): void
+    {
+        $fileSanitizer = new FileSanitizer();
+
+        $result = $fileSanitizer->processBase64(base64_encode('plain text content long enough to sniff as text.'), 'note.txt', true);
+
+        self::assertSame('plain text content long enough to sniff as text.', $result['sanitizedData']);
+    }
+
+    public function testProcessStringBooleanThirdArgumentIsTreatedAsSanitizeAlwaysShorthand(): void
+    {
+        $fileSanitizer = new FileSanitizer();
+
+        $result = $fileSanitizer->processString('plain text content for sniffing.', 'note.txt', true);
+
+        self::assertSame('plain text content for sniffing.', $result['sanitizedData']);
+    }
+
+    /**
+     * A filename hint made entirely of dots sanitizes down to the empty string, then NameSanitizer's
+     * own empty-name fallback turns it into the literal "file" — which createTempInputPath() then
+     * has to recognize and replace with a proper "upload.<ext>" name so the temp file still gets a
+     * sensible extension instead of a bare, extension-less "file".
+     */
+    public function testFilenameHintThatSanitizesToEmptyFallsBackToUploadName(): void
+    {
+        $fileSanitizer = new FileSanitizer();
+
+        $result = $fileSanitizer->processString('plain text content for sniffing.', '...');
+
+        self::assertStringContainsString('upload', $result['sanitize']->outputPath);
+    }
+
     public function testWritesToExplicitOutputPathAndLeavesItOnDisk(): void
     {
         $tempDir = sys_get_temp_dir() . '/fsz_datainput_test_' . bin2hex(random_bytes(6));

@@ -13,6 +13,7 @@ use SytxLabs\FileSanitizer\Stream\FileWriter;
 
 final class TextLikeSanitizer implements SanitizerInterface
 {
+    /** @param array<string, mixed>|null $options */
     public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, private readonly ?array $options = null)
     {
     }
@@ -56,6 +57,7 @@ final class TextLikeSanitizer implements SanitizerInterface
         return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text) ?? $text;
     }
 
+    /** @return array{0: string, 1: string} */
     private function splitUtf8Safe(string $chunk): array
     {
         $len = strlen($chunk);

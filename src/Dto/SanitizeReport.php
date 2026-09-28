@@ -9,6 +9,7 @@ final class SanitizeReport implements JsonSerializable, Stringable
 {
     /**
      * @param array<Issue> $issues
+     * @param array<string, mixed> $context
      */
     public function __construct(public readonly string $outputPath, public readonly bool $metadataRemoved, public readonly array $issues = [], public readonly array $context = [], public readonly bool $unchanged = false)
     {
@@ -19,6 +20,7 @@ final class SanitizeReport implements JsonSerializable, Stringable
         return $this->outputPath;
     }
 
+    /** @return array{outputPath: string, metadataRemoved: bool, issues: array<Issue>, context: array<string, mixed>, unchanged: bool} */
     public function toArray(): array
     {
         return [
@@ -30,6 +32,7 @@ final class SanitizeReport implements JsonSerializable, Stringable
         ];
     }
 
+    /** @return array{outputPath: string, metadataRemoved: bool, issues: array<Issue>, context: array<string, mixed>, unchanged: bool} */
     public function jsonSerialize(): array
     {
         return $this->toArray();

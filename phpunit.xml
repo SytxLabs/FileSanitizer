@@ -21,5 +21,19 @@
             <file>./tests/FileSanitizerTest.php</file>
             <file>./tests/FileSanitizerDataInputTest.php</file>
         </testsuite>
+        <testsuite name="Dto Tests">
+            <directory suffix=".php">./tests/Dto</directory>
+        </testsuite>
+        <testsuite name="MimeDetector Tests">
+            <directory suffix=".php">./tests/MimeDetector</directory>
+        </testsuite>
+        <testsuite name="Fuzz Tests">
+            <file>./tests/FuzzTest.php</file>
+        </testsuite>
     </testsuites>
+    <coverage>
+        <include>
+            <directory suffix=".php">./src</directory>
+        </include>
+    </coverage>
 </phpunit>
