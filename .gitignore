@@ -4,3 +4,6 @@
 .idea/
 .phpunit.result.cache
 composer.lock
+/build/
+coverage-*.txt
+coverage-*.xml

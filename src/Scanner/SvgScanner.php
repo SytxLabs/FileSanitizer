@@ -2,6 +2,7 @@
 
 namespace SytxLabs\FileSanitizer\Scanner;
 
+use RuntimeException;
 use SytxLabs\FileSanitizer\Contracts\ScannerInterface;
 use SytxLabs\FileSanitizer\Contracts\StreamInterface;
 use SytxLabs\FileSanitizer\Dto\Issue;
@@ -23,7 +24,8 @@ final class SvgScanner implements ScannerInterface
 
     private const MESSAGES = ['svg_active_content' => 'SVG contains active or externally-referential content elements.'];
 
-    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?array $options = null)
+    /** @param array<string, mixed>|null $options unused; accepted only to satisfy ScannerInterface's constructor signature */
+    public function __construct(private readonly ?StreamInterface $stream = null, ?array $options = null)
     {
     }
 
@@ -34,6 +36,9 @@ final class SvgScanner implements ScannerInterface
 
     public function scan(string $path, string $mimeType): ScanReport
     {
+        if ($this->stream === null) {
+            throw new RuntimeException('SvgScanner requires a stream to be injected via the constructor.');
+        }
         $this->stream->rewind();
         $size = $this->stream->size();
         $found = $this->scanRangeForPatterns($this->stream, $size === false ? PHP_INT_MAX : $size, self::PATTERNS, overlap: self::OVERLAP);

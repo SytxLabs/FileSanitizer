@@ -25,12 +25,12 @@ final class NullStream implements StreamInterface
         return true;
     }
 
-    public function tell(): false|int
+    public function tell(): int
     {
         return 0;
     }
 
-    public function size(): false|int
+    public function size(): int
     {
         return 0;
     }

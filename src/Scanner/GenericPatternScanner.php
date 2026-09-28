@@ -2,6 +2,7 @@
 
 namespace SytxLabs\FileSanitizer\Scanner;
 
+use RuntimeException;
 use SytxLabs\FileSanitizer\Contracts\ScannerInterface;
 use SytxLabs\FileSanitizer\Contracts\StreamInterface;
 use SytxLabs\FileSanitizer\Dto\Issue;
@@ -32,7 +33,8 @@ final class GenericPatternScanner implements ScannerInterface
         'css_import' => '/@import\b/i',
     ];
 
-    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?array $options = null)
+    /** @param array<string, mixed>|null $options unused; accepted only to satisfy ScannerInterface's constructor signature */
+    public function __construct(private readonly ?StreamInterface $stream = null, ?array $options = null)
     {
     }
 
@@ -43,6 +45,9 @@ final class GenericPatternScanner implements ScannerInterface
 
     public function scan(string $path, string $mimeType): ScanReport
     {
+        if ($this->stream === null) {
+            throw new RuntimeException('GenericPatternScanner requires a stream to be injected via the constructor.');
+        }
         $this->stream->rewind();
         $size = $this->stream->size();
         $found = $this->scanRangeForPatterns($this->stream, $size === false ? PHP_INT_MAX : $size, self::PATTERNS, overlap: self::OVERLAP);

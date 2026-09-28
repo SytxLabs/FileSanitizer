@@ -6,6 +6,7 @@ use SytxLabs\FileSanitizer\Dto\SanitizeReport;
 
 interface SanitizerInterface
 {
+    /** @param array<string, mixed>|null $options */
     public function __construct(?StreamInterface $stream = null, ?OutputInterface $output = null, ?array $options = null);
 
     public function supports(string $mimeType, string $path): bool;

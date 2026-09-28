@@ -19,7 +19,8 @@ class AudioSanitizer implements SanitizerInterface
 
     private const TEXTUAL_PAYLOAD_OPEN_MARKERS = ['#<\s*script\b#i', '#<\s*iframe\b#i'];
 
-    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, private readonly ?array $options = null)
+    /** @param array<string, mixed>|null $options unused; accepted only to satisfy SanitizerInterface's constructor signature */
+    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, ?array $options = null)
     {
     }
 

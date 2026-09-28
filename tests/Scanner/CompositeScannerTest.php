@@ -41,6 +41,13 @@ final class CompositeScannerTest extends TestCase
         self::assertFalse($report->safe);
     }
 
+    public function testSupportsEverything(): void
+    {
+        $scanner = new CompositeScanner();
+
+        self::assertTrue($scanner->supports('anything/at-all', '/tmp/x.unknown'));
+    }
+
     public function testCleanWhenNoScannerFlagsAnything(): void
     {
         file_put_contents($this->path, 'hello world');

@@ -3,6 +3,7 @@
 namespace SytxLabs\FileSanitizer\Tests\Scanner;
 
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use SytxLabs\FileSanitizer\Scanner\GenericPatternScanner;
 use SytxLabs\FileSanitizer\Stream\FileChunker;
 
@@ -44,5 +45,11 @@ final class GenericPatternScannerTest extends TestCase
         $report = (new GenericPatternScanner(new FileChunker($this->path)))->scan($this->path, 'text/plain');
 
         self::assertTrue($report->safe);
+    }
+
+    public function testThrowsWhenStreamNotInjected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        (new GenericPatternScanner())->scan($this->path, 'text/plain');
     }
 }

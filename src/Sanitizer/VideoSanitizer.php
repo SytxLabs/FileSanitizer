@@ -30,7 +30,8 @@ class VideoSanitizer implements SanitizerInterface
 
     private const AVI_DROP_CHUNK_IDS = ['INFO', 'JUNK', 'IDIT'];
 
-    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, private readonly ?array $options = null)
+    /** @param array<string, mixed>|null $options unused; accepted only to satisfy SanitizerInterface's constructor signature */
+    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, ?array $options = null)
     {
     }
 

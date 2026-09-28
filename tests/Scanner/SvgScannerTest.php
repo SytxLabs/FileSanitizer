@@ -3,6 +3,7 @@
 namespace SytxLabs\FileSanitizer\Tests\Scanner;
 
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use SytxLabs\FileSanitizer\Scanner\SvgScanner;
 use SytxLabs\FileSanitizer\Stream\FileChunker;
 
@@ -36,5 +37,21 @@ final class SvgScannerTest extends TestCase
         $report = (new SvgScanner(new FileChunker($this->path)))->scan($this->path, 'image/svg+xml');
 
         self::assertTrue($report->safe);
+    }
+
+    public function testSupportsSvgMimeTypeAndExtension(): void
+    {
+        file_put_contents($this->path, '<svg></svg>');
+        $scanner = new SvgScanner(new FileChunker($this->path));
+
+        self::assertTrue($scanner->supports('image/svg+xml', '/tmp/x.dat'));
+        self::assertTrue($scanner->supports('application/octet-stream', '/tmp/x.svg'));
+        self::assertFalse($scanner->supports('text/plain', '/tmp/x.txt'));
+    }
+
+    public function testThrowsWhenStreamNotInjected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        (new SvgScanner())->scan($this->path, 'image/svg+xml');
     }
 }

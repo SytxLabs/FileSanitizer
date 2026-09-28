@@ -31,8 +31,9 @@
       "ext-fileinfo": "*"
   },
   "require-dev": {
-    "portavice/laravel-pint-config": "^2.0",
+    "phpstan/phpstan": "^2.0",
     "phpunit/phpunit": "^9",
+    "portavice/laravel-pint-config": "^2.0",
     "roave/security-advisories": "dev-latest"
   },
   "suggest": {
@@ -47,7 +48,8 @@
   "scripts": {
     "cs": "pint --config vendor/portavice/laravel-pint-config/pint.json --test",
     "csfix": "pint --config vendor/portavice/laravel-pint-config/pint.json",
-    "test": "phpunit --configuration phpunit.xml"
+    "test": "phpunit --configuration phpunit.xml",
+    "stan": "phpstan analyse --configuration phpstan.neon"
   },
   "minimum-stability": "dev",
   "prefer-stable": true

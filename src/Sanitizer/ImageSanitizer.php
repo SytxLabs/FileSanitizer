@@ -12,7 +12,14 @@ use SytxLabs\FileSanitizer\Enums\IssueSeverity;
 
 final class ImageSanitizer implements SanitizerInterface
 {
-    public function __construct(private readonly ?StreamInterface $stream = null, private readonly ?OutputInterface $output = null, private readonly ?array $options = null)
+    /**
+     * ImageSanitizer works directly on the input/output file paths via GD, so unlike the other
+     * sanitizers it never touches the injected stream/writer/options; they exist only to satisfy
+     * SanitizerInterface's constructor signature for uniform DI-based instantiation.
+     *
+     * @param array<string, mixed>|null $options
+     */
+    public function __construct(?StreamInterface $stream = null, ?OutputInterface $output = null, ?array $options = null)
     {
     }
 
@@ -61,6 +68,11 @@ final class ImageSanitizer implements SanitizerInterface
             imagealphablending($image, false);
             imagesavealpha($image, true);
             $transparent = imagecolorallocatealpha($image, 0, 0, 0, 127);
+            if ($transparent === false) {
+                imagedestroy($source);
+                imagedestroy($image);
+                throw new RuntimeException('Could not allocate transparent color for PNG target image.');
+            }
             imagefilledrectangle($image, 0, 0, $width, $height, $transparent);
             if (!imagecopy($image, $source, 0, 0, 0, 0, $width, $height)) {
                 imagedestroy($source);
