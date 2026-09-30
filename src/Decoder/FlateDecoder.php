@@ -13,9 +13,11 @@ final class FlateDecoder implements DecoderInterface
 
     public function decode(string $data): string
     {
+        // @codeCoverageIgnoreStart
         if (!extension_loaded('zlib')) {
             return $data;
         }
+        // @codeCoverageIgnoreEnd
         $decoded = @gzuncompress($data);
         if ($decoded === false) {
             $decoded = @gzinflate($data);

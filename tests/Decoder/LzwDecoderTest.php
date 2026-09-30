@@ -59,9 +59,45 @@ final class LzwDecoderTest extends TestCase
      * unpacks: accumulate bits, then peel off codeLen-bit chunks from the top once enough have
      * built up. Trailing bits are zero-padded; decode() never reaches them here because every
      * sequence below ends on an explicit end-of-data code (257), which returns immediately.
-     *
-     * @param list<int> $codes
      */
+    public function testCodeWidthGrowsWhenTheTableOutgrowsNineBits(): void
+    {
+        $expected = '';
+        $codes = [256];
+        for ($i = 0; $i < 600; $i++) {
+            $expected .= chr($i % 251);
+            $codes[] = $i % 251;
+        }
+        $codes[] = 257;
+
+        // Mirror the decoder's early-change rule: the first code after the clear adds no table
+        // entry, every later one does, and the width grows once nextCode + 1 reaches 1 << width.
+        $bitBuffer = 0;
+        $bitCount = 0;
+        $width = 9;
+        $nextCode = 258;
+        $encoded = '';
+        foreach ($codes as $index => $code) {
+            $bitBuffer = (($bitBuffer << $width) | $code) & 0xFFFFFFFF;
+            $bitCount += $width;
+            while ($bitCount >= 8) {
+                $bitCount -= 8;
+                $encoded .= chr(($bitBuffer >> $bitCount) & 0xFF);
+            }
+            if ($index >= 2 && $code !== 257) {
+                $nextCode++;
+                if ($nextCode + 1 >= (1 << $width) && $width < 12) {
+                    $width++;
+                }
+            }
+        }
+        if ($bitCount > 0) {
+            $encoded .= chr(($bitBuffer << (8 - $bitCount)) & 0xFF);
+        }
+
+        self::assertSame($expected, (new LzwDecoder())->decode($encoded));
+    }
+
     private function packCodes(array $codes, int $codeLen = 9): string
     {
         $bitBuffer = 0;

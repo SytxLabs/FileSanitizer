@@ -50,7 +50,6 @@ final class ImageSanitizerTest extends TestCase
 
         $image = imagecreatetruecolor(4, 4);
         imagepng($image, $input);
-        imagedestroy($image);
 
         $report = (new ImageSanitizer(new FileChunker($input), new FileWriter($output)))->sanitize($input, $output);
 
@@ -150,7 +149,6 @@ final class ImageSanitizerTest extends TestCase
 
         $image = imagecreatetruecolor(4, 4);
         imagepng($image, $input);
-        imagedestroy($image);
 
         // No writer injected: ImageSanitizer ignores the DI stream/writer and works on the paths
         // directly via GD, so injecting a FileWriter here would create the directory itself first
@@ -173,7 +171,6 @@ final class ImageSanitizerTest extends TestCase
         $input = $this->tempDir . '/input.png';
         $image = imagecreatetruecolor(4, 4);
         imagepng($image, $input);
-        imagedestroy($image);
 
         $blocker = $this->tempDir . '/blocker';
         file_put_contents($blocker, 'i am a file, not a directory');
@@ -217,7 +214,6 @@ final class ImageSanitizerTest extends TestCase
         $input = $this->tempDir . '/input.png';
         $image = imagecreatetruecolor(4, 4);
         imagepng($image, $input);
-        imagedestroy($image);
 
         $outputAsDir = $this->tempDir . '/output-is-a-directory.png';
         mkdir($outputAsDir);
@@ -231,7 +227,6 @@ final class ImageSanitizerTest extends TestCase
         $image = imagecreatetruecolor(4, 4);
         $tmp = $this->tempDir . '/_plain_' . bin2hex(random_bytes(4)) . '.png';
         imagepng($image, $tmp);
-        imagedestroy($image);
         $bytes = (string) file_get_contents($tmp);
         @unlink($tmp);
 
@@ -250,7 +245,6 @@ final class ImageSanitizerTest extends TestCase
         $image = imagecreatetruecolor(4, 4);
         $tmp = $this->tempDir . '/_plain_' . bin2hex(random_bytes(4)) . '.png';
         imagepng($image, $tmp);
-        imagedestroy($image);
         $bytes = (string) file_get_contents($tmp);
         @unlink($tmp);
 
@@ -269,7 +263,6 @@ final class ImageSanitizerTest extends TestCase
         $image = imagecreatetruecolor(4, 4);
         $tmp = $this->tempDir . '/_plain_' . bin2hex(random_bytes(4)) . '.jpg';
         imagejpeg($image, $tmp);
-        imagedestroy($image);
         $bytes = (string) file_get_contents($tmp);
         @unlink($tmp);
 
@@ -284,7 +277,6 @@ final class ImageSanitizerTest extends TestCase
         $image = imagecreatetruecolor(4, 4);
         $tmp = $this->tempDir . '/_plain_' . bin2hex(random_bytes(4)) . '.gif';
         imagegif($image, $tmp);
-        imagedestroy($image);
         $bytes = (string) file_get_contents($tmp);
         @unlink($tmp);
 
@@ -299,7 +291,6 @@ final class ImageSanitizerTest extends TestCase
         $image = imagecreatetruecolor(4, 4);
         $tmp = $this->tempDir . '/_plain_' . bin2hex(random_bytes(4)) . '.webp';
         imagewebp($image, $tmp);
-        imagedestroy($image);
         $bytes = (string) file_get_contents($tmp);
         @unlink($tmp);
 

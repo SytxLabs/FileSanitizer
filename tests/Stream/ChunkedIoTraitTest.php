@@ -234,6 +234,23 @@ final class ChunkedIoTraitTest extends TestCase
     }
 
     /**
+     * The trailing flush runs the pattern over the held-back carry on its own; a pattern anchored
+     * to the start of the string only matches there, not inside the larger window of the main loop.
+     */
+    public function testStreamStripPatternsTrailingFlushStripsAnchoredMatchInCarry(): void
+    {
+        $harness = $this->harness();
+        $in = $this->stream(['X<scrAAA']);
+        $out = $this->output();
+        $anyRemoved = false;
+
+        $harness->doStreamStripPatterns($in, $out, 8, '/^<scr/', ['/<scr/'], $anyRemoved);
+
+        self::assertSame('XAAA', $out->buffer);
+        self::assertTrue($anyRemoved);
+    }
+
+    /**
      * A malformed pattern makes preg_replace() return null; the trait must fall back to the
      * unmodified window rather than propagate that null as content. The @ here suppresses the
      * PHP warning preg_replace() raises for the broken pattern, the same way a caller running

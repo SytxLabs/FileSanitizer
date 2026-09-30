@@ -51,7 +51,7 @@ final class LzwDecoder implements DecoderInterface
                     // $prev should always be a previously-assigned code once it is no longer -1;
                     // this guards the table lookups below against that invariant somehow not
                     // holding, rather than assuming it and risking an undefined-offset access.
-                    return $data;
+                    return $data; // @codeCoverageIgnore
                 } elseif (isset($table[$code])) {
                     $entry = $table[$code];
                     $table[$nextCode++] = $table[$prev] . $entry[0];

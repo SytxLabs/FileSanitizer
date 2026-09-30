@@ -92,10 +92,12 @@ final class PdfSanitizer implements SanitizerInterface
         $currentPath = $this->applySubstitution($currentPath, $tempFiles, '/\/(Title|Author|Subject|Keywords|Creator|Producer|CreationDate|ModDate)\s*\((?:\\.|[^()])*\)/i', ['#\/(?:Title|Author|Subject|Keywords|Creator|Producer|CreationDate|ModDate)\b#i'], $changed, '/$1 ()');
 
         $finalSize = filesize($currentPath);
+        // @codeCoverageIgnoreStart
         if ($finalSize === false) {
             $this->cleanupTempFiles($tempFiles);
             throw new RuntimeException('Could not write sanitized PDF.');
         }
+        // @codeCoverageIgnoreEnd
         $finalIn = new FileChunker($currentPath);
         try {
             $this->copyRange($finalIn, $this->output, $finalSize);
@@ -116,9 +118,11 @@ final class PdfSanitizer implements SanitizerInterface
     private function runStep(string $currentPath, callable $step, array &$tempFiles): string
     {
         $target = tempnam(sys_get_temp_dir(), 'fsz_pdf_');
+        // @codeCoverageIgnoreStart
         if ($target === false) {
             throw new RuntimeException('Could not create temporary file for PDF sanitization step.');
         }
+        // @codeCoverageIgnoreEnd
         $in = new FileChunker($currentPath);
         $out = new FileWriter($target);
         try {
@@ -244,11 +248,9 @@ final class PdfSanitizer implements SanitizerInterface
     /** @param list<string>|null $filters */
     private function finishStreamBody(string $body, bool $overflow, ?array $filters, ?OutputInterface $out, bool &$dangerFound): void
     {
-        if ($overflow) {
-            return;
-        }
-        if ($filters === null) {
-            $out?->write($body);
+        // A stream without a parseable /Filter is always flagged as overflow by the caller and was
+        // already passed through while streaming, so there is nothing left to write here.
+        if ($overflow || $filters === null) {
             return;
         }
         $decoder = $this->resolveDecoder($filters[0]);

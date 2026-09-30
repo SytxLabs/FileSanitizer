@@ -60,26 +60,27 @@ final class ImageSanitizer implements SanitizerInterface
             $width = imagesx($source);
             $height = imagesy($source);
 
+            // The GD allocation/copy failure guards below only trigger on out-of-memory conditions.
             $image = imagecreatetruecolor($width, $height);
+            // @codeCoverageIgnoreStart
             if ($image === false) {
-                imagedestroy($source);
                 throw new RuntimeException('Could not create PNG target image.');
             }
+            // @codeCoverageIgnoreEnd
             imagealphablending($image, false);
             imagesavealpha($image, true);
             $transparent = imagecolorallocatealpha($image, 0, 0, 0, 127);
+            // @codeCoverageIgnoreStart
             if ($transparent === false) {
-                imagedestroy($source);
-                imagedestroy($image);
                 throw new RuntimeException('Could not allocate transparent color for PNG target image.');
             }
+            // @codeCoverageIgnoreEnd
             imagefilledrectangle($image, 0, 0, $width, $height, $transparent);
+            // @codeCoverageIgnoreStart
             if (!imagecopy($image, $source, 0, 0, 0, 0, $width, $height)) {
-                imagedestroy($source);
-                imagedestroy($image);
                 throw new RuntimeException('Could not copy PNG pixels.');
             }
-            imagedestroy($source);
+            // @codeCoverageIgnoreEnd
         } else {
             $image = match ($type) {
                 IMAGETYPE_JPEG => imagecreatefromjpeg($inputPath),
@@ -100,8 +101,6 @@ final class ImageSanitizer implements SanitizerInterface
             IMAGETYPE_WEBP => function_exists('imagewebp') && imagewebp($image, $outputPath),
             default => false,
         };
-
-        imagedestroy($image);
 
         if ($success !== true) {
             throw new RuntimeException('Could not re-encode image.');

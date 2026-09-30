@@ -1,0 +1,44 @@
+name: Code coverage
+
+on: [push, pull_request]
+
+env:
+  MIN_COVERAGE: 95
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    name: Coverage (min 95%)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          coverage: pcov
+          ini-values: pcov.directory=src, memory_limit=2G
+
+      - name: Install
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Run tests with coverage
+        run: vendor/bin/phpunit --configuration phpunit.xml --coverage-text --coverage-clover=coverage.xml
+
+      - name: Enforce minimum line coverage
+        run: |
+          php -r '
+            $min = (float) getenv("MIN_COVERAGE");
+            $xml = simplexml_load_file("coverage.xml");
+            $m = $xml->project->metrics;
+            $total = (int) $m["statements"];
+            $covered = (int) $m["coveredstatements"];
+            $pct = $total > 0 ? $covered / $total * 100 : 100.0;
+            printf("Line coverage: %.2f%% (%d/%d), required: %.2f%%\n", $pct, $covered, $total, $min);
+            if ($pct < $min) {
+                fwrite(STDERR, "Coverage below minimum.\n");
+                exit(1);
+            }
+          '

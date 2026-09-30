@@ -168,9 +168,11 @@ final class FileSanitizer
         $normalizedData = $normalizeStringLiterals ? $this->normalizeStringInput($data) : $data;
         $resolvedMimeType = $mimeType ?? $this->detectMimeTypeFromData($normalizedData);
         $inputPath = $this->createTempInputPath($filenameHint, $resolvedMimeType);
+        // @codeCoverageIgnoreStart
         if (file_put_contents($inputPath, $normalizedData) === false) {
             throw new RuntimeException('Could not write temporary input file for string processing.');
         }
+        // @codeCoverageIgnoreEnd
         $result = null;
         try {
             $result = $this->process($inputPath, $outputPath, $sanitizeAlways, $resolvedMimeType);
@@ -208,12 +210,14 @@ final class FileSanitizer
         }
         try {
             $tempDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'fsz_data_' . bin2hex(random_bytes(8));
+            // @codeCoverageIgnoreStart
         } catch (Exception $e) {
             throw new RuntimeException('Could not generate random directory name for string processing.', previous: $e);
         }
         if (!mkdir($tempDirectory, 0755, true) && !is_dir($tempDirectory)) {
             throw new RuntimeException('Could not create temporary directory for string processing.');
         }
+        // @codeCoverageIgnoreEnd
         return $tempDirectory . DIRECTORY_SEPARATOR . $safeName;
     }
 
@@ -240,7 +244,6 @@ final class FileSanitizer
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($finfo !== false) {
             $detected = finfo_buffer($finfo, $data);
-            finfo_close($finfo);
             if (is_string($detected) && $detected !== '' && $detected !== 'application/octet-stream') {
                 return strtolower(trim($detected));
             }

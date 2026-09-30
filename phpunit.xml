@@ -20,6 +20,7 @@
             <file>./tests/NameSanitizerTest.php</file>
             <file>./tests/FileSanitizerTest.php</file>
             <file>./tests/FileSanitizerDataInputTest.php</file>
+            <file>./tests/PrivateGuardsTest.php</file>
         </testsuite>
         <testsuite name="Dto Tests">
             <directory suffix=".php">./tests/Dto</directory>

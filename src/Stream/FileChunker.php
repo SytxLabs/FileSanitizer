@@ -19,9 +19,11 @@ final class FileChunker implements StreamInterface
             throw new RuntimeException(sprintf('Input file not found: %s', $this->path));
         }
         $handle = fopen($this->path, 'rb');
+        // @codeCoverageIgnoreStart
         if ($handle === false) {
             throw new RuntimeException(sprintf('Could not open file for reading: %s', $this->path));
         }
+        // @codeCoverageIgnoreEnd
         $this->handle = $handle;
     }
 
