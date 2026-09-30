@@ -4,6 +4,7 @@
 [![Check code style](https://github.com/SytxLabs/FileSanitizer/actions/workflows/code-style.yml/badge.svg?style=flat-square)](https://github.com/SytxLabs/FileSanitizer/actions/workflows/code-style.yml)
 [![Tests](https://github.com/SytxLabs/FileSanitizer/actions/workflows/tests.yml/badge.svg?style=flat-square)](https://github.com/SytxLabs/FileSanitizer/actions/workflows/tests.yml)
 [![Static analysis](https://github.com/SytxLabs/FileSanitizer/actions/workflows/static-analysis.yml/badge.svg?style=flat-square)](https://github.com/SytxLabs/FileSanitizer/actions/workflows/static-analysis.yml)
+[![Code coverage](https://github.com/SytxLabs/FileSanitizer/actions/workflows/coverage.yml/badge.svg?style=flat-square)](https://github.com/SytxLabs/FileSanitizer/actions/workflows/coverage.yml)
 [![Latest Version on Packagist](https://poser.pugx.org/sytxlabs/filesanitizer/v/stable?format=flat-square)](https://packagist.org/packages/sytxlabs/filesanitizer)
 [![Total Downloads](https://poser.pugx.org/sytxlabs/filesanitizer/downloads?format=flat-square)](https://packagist.org/packages/sytxlabs/filesanitizer)
 
@@ -30,7 +31,20 @@ Pure PHP file sanitizer and scanner for uploaded files. It strips metadata where
 composer require sytxlabs/filesanitizer
 ````
 
-Requires PHP >=8.1 with the `dom`, `libxml`, `exif`, `gd`, `zip`, and `fileinfo` extensions enabled.
+Requires PHP >=8.1 with the `exif`, `gd`, `zip`, and `fileinfo` extensions enabled. The `zlib` extension is recommended: without it, compressed PDF streams cannot be decoded and scanned.
+
+## Upgrading from 1.x
+
+2.0 rewrote the pipeline around streaming I/O and contains breaking changes:
+
+* `Scanner\PatternScanner` was removed; use `Scanner\CompositeScanner` (the default) or `Scanner\ArchiveScanner`.
+* `Support\MimeDetector` moved to `MimeDetector\MimeDetector` and implements `Contracts\MimeDetectorInterface`.
+* The `FileSanitizer` constructor is now `(mimeDetector, scanner, input, output, sanitizerCandidates, nameSanitizer)`. Each argument may be an instance or a class-string; the sanitizer list moved from the 3rd to the 5th position.
+* `ScannerInterface` and `SanitizerInterface` declare a constructor taking an optional stream (and output) plus an options array. `ScannerInterface` additionally requires `supports()`.
+* Archive limits (`maxArchiveDepth`, `maxArchiveEntries`, `maxExpandedBytes`) are passed via the scanner's `$options` array instead of positional constructor parameters.
+* `SanitizeReport` has a new `unchanged` property, which is also part of `toArray()` / JSON output.
+* HTML/SVG sanitizing no longer builds a DOM, so the serialized output can differ byte-wise from 1.x even though the policy is the same.
+* PDFs with streams whose filter chain cannot be decoded are now rejected fail-closed.
 
 For development and tests:
 
@@ -233,6 +247,8 @@ Current guards:
 * maximum expanded bytes scanned: 25 MB
 * suspicious path detection for entries such as `../evil.txt` or absolute paths
 
+The limits are configurable through the scanner options, for example `new ArchiveScanner(null, ['maxArchiveDepth' => 2, 'maxArchiveEntries' => 500, 'maxExpandedBytes' => 10_000_000])`.
+
 ## HTML and SVG policy
 
 HTML and SVG sanitization is policy-based and removes risky constructs instead of relying on simple tag stripping.
@@ -297,7 +313,7 @@ Video sanitization is best-effort and does not transcode or fully rebuild media 
 
 ## Test coverage, static analysis, and fuzzing
 
-The PHPUnit suite (`composer test`) covers essentially the entire library — around 98% line coverage — including:
+The PHPUnit suite (`composer test`) covers essentially the entire library — over 99% line coverage, with CI failing the build below 95% — including:
 
 * nested ZIP detection
 * path traversal detection inside ZIPs
